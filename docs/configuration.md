@@ -7,7 +7,7 @@ Start with:
 ```text
 LoopTheSea status
 LoopTheSea preflight
-LoopTheSea prefs audit
+LoopTheSeaPrefs audit
 ```
 
 ## Common Preferences
@@ -35,11 +35,11 @@ Automated ascension should be enabled only after preflight passes.
 
 ```text
 loopTheSea_ascendEnabled
-loopTheSea_nextAscensionType
-loopTheSea_nextPathId
-loopTheSea_nextClassName
-loopTheSea_nextMoonId
-loopTheSea_nextGender
+loopTheSea_ascensionType
+loopTheSea_pathId
+loopTheSea_className
+loopTheSea_moonId
+loopTheSea_gender
 loopTheSea_astralDeli
 loopTheSea_astralPet
 loopTheSea_permSkills
