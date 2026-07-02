@@ -35,3 +35,5 @@ Leg2 pressure optimization may use or acquire:
 - porquoise
 
 When a piece is missing, `LoopTheSea status` and `LoopTheSea preflight` should explain whether it is ready, assemble-ready, buy-ready, or blocked.
+
+See [required-gear.md](required-gear.md) for the hard gear and familiar list used by LoopTheSea itself.

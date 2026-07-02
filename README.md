@@ -22,6 +22,14 @@ validate LoopTheSeaPearlCCS
 validate LoopTheSeaBofaFishyCCS
 ```
 
+The project also installs a relay-browser preference page:
+
+```text
+relay_LoopTheSea.ash
+```
+
+See [docs/preferences-gui.md](docs/preferences-gui.md).
+
 ## Dependencies
 
 LoopTheSea expects several external scripts and account capabilities.
@@ -39,6 +47,17 @@ Optional but strongly recommended:
 - `pvp_mab` for end-of-Leg1 PvP
 
 See [docs/dependencies.md](docs/dependencies.md) for more detail.
+
+For the account gear expected by the full loop, see
+[docs/required-gear.md](docs/required-gear.md).
+
+## Preference GUI
+
+LoopTheSea has a relay-browser preference manager for the common
+`loopTheSea_*` and `underTheSeaPrep_*` settings. It only edits preferences; it
+does not run turns, consume diet, PvP, replace furniture, or ascend.
+
+Open `relay_LoopTheSea.ash` from KoLmafia's relay script menu after install.
 
 ## First Run
 

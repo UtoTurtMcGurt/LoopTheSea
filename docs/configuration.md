@@ -10,6 +10,15 @@ LoopTheSea preflight
 KoLmafiaPrefGuard audit
 ```
 
+Common preferences can also be edited from KoLmafia's relay browser with:
+
+```text
+relay_LoopTheSea.ash
+```
+
+The relay page only saves preferences. It does not run LoopTheSea or spend
+resources. See [preferences-gui.md](preferences-gui.md).
+
 ## Common Preferences
 
 ```text
