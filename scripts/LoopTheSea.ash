@@ -353,22 +353,6 @@ void run_cli(string command) {
     if (!cli_execute(command)) abort("Command failed: " + command);
 }
 
-void run_prefs_tool(string command) {
-    run_cli("LoopTheSeaPrefs " + command);
-}
-
-void prefs_backup(string phase) {
-    run_prefs_tool("backup " + phase);
-}
-
-void prefs_checkpoint(string phase) {
-    run_prefs_tool("checkpoint " + phase);
-}
-
-void prefs_audit() {
-    run_prefs_tool("audit");
-}
-
 string profit_marker_name(string marker) {
     return pref_string("profitMarkerPrefix", "lts") + "_" + marker;
 }
@@ -1724,7 +1708,6 @@ void enter_valhalla_if_needed() {
 
     int starting_ascensions = my_ascensions();
     set_property(INTERNAL + "ascensionStartedFrom", "" + starting_ascensions);
-    prefs_checkpoint("before-ascension");
 
     print("Entering Valhalla.", "teal");
     visit_url("council.php", false, true);
@@ -1963,7 +1946,6 @@ void submit_afterlife_ascension() {
     }
 
     mark_ascension_complete();
-    prefs_checkpoint("after-ascension");
     print("Automated ascension complete. Current path: " + path_name()
         + "; ascensions: " + my_ascensions() + ".", "green");
 }
@@ -3650,7 +3632,6 @@ void finish_leg2_rollover() {
             + projected_leg2_pearl_combats() + " projected pearl combat(s) remain.");
     }
 
-    prefs_checkpoint("before-leg2-rollover");
     run_leg2_breakfast_sweep();
     run_leg2_rollover_hook();
     run_leg2_garbo();
@@ -3751,7 +3732,6 @@ void undersea() {
 
     if (!king_liberated()) {
         protect_porquoise_before_undersea();
-        prefs_checkpoint("before-undersea");
         run_undersea_command();
     } else {
         print("King is already liberated; treating this as post-UnderTheSea aftercore and skipping UnderTheSea command.", "yellow");
@@ -3762,7 +3742,6 @@ void undersea() {
     }
 
     set_property(INTERNAL + "underTheSeaComplete", "true");
-    prefs_checkpoint("after-undersea");
     if (can_interact() && pref_bool("hagnkAllAfterUnderSea", true)) {
         run_cli("hagnk all");
     }
@@ -3868,9 +3847,6 @@ void fullday_ascend_checkpoint() {
 void full_day() {
     prepare_loop_state();
 
-    if (pref_bool("prefsAuditBeforeFullday", true)) prefs_audit();
-    prefs_checkpoint("fullday-start");
-
     if (get_property(INTERNAL + "leg2Complete").to_boolean()) {
         print("LoopTheSea fullday is already complete for this checkpoint date.", "green");
         return;
@@ -3961,7 +3937,6 @@ void help() {
     print("Optional: set " + PREF + "runInitialGarbo=true to let `LoopTheSea run` start with garbo ascend.", "teal");
     print("Optional: set " + PREF + "leg2RunAfterUnderSea=true to let `LoopTheSea run` continue into Leg2 farming.", "teal");
     print("Ascension uses only " + PREF + "* prefs. It does not read pLoop preferences.", "teal");
-    print("Preference safety: run `LoopTheSeaPrefs backup` before experiments and `LoopTheSeaPrefs audit` after crashes.", "teal");
 }
 
 void main(string input) {
@@ -4012,20 +3987,6 @@ void main(string input) {
             return;
         case "leg2rollover":
             run_leg2_rollover_command();
-            return;
-        case "prefs backup":
-        case "pref backup":
-        case "backup prefs":
-            prepare_loop_state();
-            prefs_backup("manual");
-            return;
-        case "prefs audit":
-        case "pref audit":
-        case "audit prefs":
-            prefs_audit();
-            return;
-        case "prefs":
-            print("Preference tools now live in `LoopTheSeaPrefs`: audit | backup [phase] | checkpoint [phase] | status", "teal");
             return;
         case "run":
             run_loop();

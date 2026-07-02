@@ -24,11 +24,11 @@ Then read the current phase:
 LoopTheSea can write reviewable preference backups:
 
 ```text
-LoopTheSeaPrefs backup manual
-LoopTheSeaPrefs audit
+KoLmafiaPrefGuard backup manual
+KoLmafiaPrefGuard audit
 ```
 
-Backups are written under KoLmafia's `data/` directory with `LoopTheSea_prefs_` filenames. The main `LoopTheSea` script calls `LoopTheSeaPrefs checkpoint <phase>` at risky boundaries, but the snapshot and audit logic lives in the standalone utility. These files can contain account-specific preference data and should not be committed to Git.
+Backups are written under KoLmafia's `data/` directory with `KoLmafiaPrefGuard_prefs_` filenames. The snapshot and audit logic lives in the standalone `KoLmafiaPrefGuard` utility, and LoopTheSea does not call it automatically. These files can contain account-specific preference data and should not be committed to Git.
 
 ## Common Resume Patterns
 

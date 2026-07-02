@@ -1,42 +1,58 @@
-script "LoopTheSeaPrefs";
+script "KoLmafiaPrefGuard";
 
 /*
-Preference backup and audit utility for LoopTheSea.
+KoLmafia preference backup and audit utility.
+
+Standalone helper for taking reviewable snapshots of LoopTheSea,
+UnderTheSeaPrep, and selected KoLmafia prefs before risky experiments.
 
 Usage:
-  LoopTheSeaPrefs audit
-  LoopTheSeaPrefs backup [phase]
-  LoopTheSeaPrefs checkpoint [phase]
-  LoopTheSeaPrefs status
+  KoLmafiaPrefGuard audit
+  KoLmafiaPrefGuard backup [phase]
+  KoLmafiaPrefGuard checkpoint [phase]
+  KoLmafiaPrefGuard status
 
 Backups are written to KoLmafia's data directory as TSV snapshots plus a
 reviewable restore-command text file.
 */
 
+string TOOL_PREF = "kolmafiaPrefGuard_";
+string TOOL_INTERNAL = "_kolmafiaPrefGuard_";
 string PREF = "loopTheSea_";
 string INTERNAL = "_loopTheSea_";
 
-string pref_string(string key, string fallback) {
+string tool_pref_string(string key, string fallback) {
+    string value = get_property(TOOL_PREF + key);
+    if (value == "") return fallback;
+    return value;
+}
+
+boolean tool_pref_bool(string key, boolean fallback) {
+    string value = get_property(TOOL_PREF + key);
+    if (value == "") return fallback;
+    return value.to_boolean();
+}
+
+void set_tool_default(string key, string value) {
+    if (get_property(TOOL_PREF + key) == "") set_property(TOOL_PREF + key, value);
+}
+
+void initialize_defaults() {
+    set_tool_default("backupEnabled", "true");
+    set_tool_default("checkpointBackupsEnabled", "true");
+    set_tool_default("backupPrefix", "KoLmafiaPrefGuard_prefs");
+}
+
+string loop_pref_string(string key, string fallback) {
     string value = get_property(PREF + key);
     if (value == "") return fallback;
     return value;
 }
 
-boolean pref_bool(string key, boolean fallback) {
+boolean loop_pref_bool(string key, boolean fallback) {
     string value = get_property(PREF + key);
     if (value == "") return fallback;
     return value.to_boolean();
-}
-
-void set_default(string key, string value) {
-    if (get_property(PREF + key) == "") set_property(PREF + key, value);
-}
-
-void initialize_defaults() {
-    set_default("prefsBackupEnabled", "true");
-    set_default("prefsBackupBeforeRiskyPhases", "true");
-    set_default("prefsAuditBeforeFullday", "true");
-    set_default("prefsBackupPrefix", "LoopTheSea_prefs");
 }
 
 string trim_string(string value) {
@@ -174,18 +190,14 @@ void append_loop_prefs(buffer snapshot, buffer restore) {
         102: "profitTrackingRequired",
         103: "profitTrackingRecap",
         104: "profitMarkerPrefix",
-        105: "prefsBackupEnabled",
-        106: "prefsBackupBeforeRiskyPhases",
-        107: "prefsAuditBeforeFullday",
-        108: "prefsBackupPrefix",
-        109: "useGovernmentPerDiem",
-        110: "dailyRaffleTickets",
-        111: "protectPorquoiseBeforeUnderSea",
-        112: "leg1PrepareRollover",
-        113: "leg1RolloverAdventureCap",
-        114: "leg1RolloverMaximizer",
-        115: "leg1OverflowGarboCommand",
-        116: "leg1RolloverCommand"
+        105: "useGovernmentPerDiem",
+        106: "dailyRaffleTickets",
+        107: "protectPorquoiseBeforeUnderSea",
+        108: "leg1PrepareRollover",
+        109: "leg1RolloverAdventureCap",
+        110: "leg1RolloverMaximizer",
+        111: "leg1OverflowGarboCommand",
+        112: "leg1RolloverCommand"
     };
     foreach i, key in keys {
         append_property_snapshot(snapshot, restore, "loop", PREF + key);
@@ -225,6 +237,17 @@ void append_internal_prefs(buffer snapshot, buffer restore) {
     };
     foreach i, key in keys {
         append_property_snapshot(snapshot, restore, "internal", INTERNAL + key);
+    }
+}
+
+void append_tool_prefs(buffer snapshot, buffer restore) {
+    string [int] keys = {
+        0: "backupEnabled",
+        1: "checkpointBackupsEnabled",
+        2: "backupPrefix"
+    };
+    foreach i, key in keys {
+        append_property_snapshot(snapshot, restore, "prefguard", TOOL_PREF + key);
     }
 }
 
@@ -320,7 +343,7 @@ string prefs_backup(string phase) {
     buffer restore;
     string stamp = now_to_string("YYYYMMddHHmmss");
     string safe_phase = backup_safe_fragment(phase);
-    string prefix = backup_safe_fragment(pref_string("prefsBackupPrefix", "LoopTheSea_prefs"));
+    string prefix = backup_safe_fragment(tool_pref_string("backupPrefix", "KoLmafiaPrefGuard_prefs"));
     string user = backup_safe_fragment(my_name());
     string filename = prefix + "_" + user + "_" + stamp + "_" + safe_phase + ".tsv";
     string restore_filename = prefix + "_" + user + "_" + stamp + "_" + safe_phase + "_restore.txt";
@@ -340,10 +363,11 @@ string prefs_backup(string phase) {
     snapshot.append("meta\tinebriety\t" + my_inebriety() + "/" + inebriety_limit() + "\n");
     snapshot.append("meta\tspleen\t" + my_spleen_use() + "/" + spleen_limit() + "\n");
 
-    restore.append("# LoopTheSea preference restore commands\n");
+    restore.append("# KoLmafiaPrefGuard restore commands\n");
     restore.append("# Snapshot: " + filename + "\n");
     restore.append("# Review before running; do not blindly restore stale daily state.\n");
 
+    append_tool_prefs(snapshot, restore);
     append_loop_prefs(snapshot, restore);
     append_internal_prefs(snapshot, restore);
     append_undertheseaprep_prefs(snapshot, restore);
@@ -354,10 +378,10 @@ string prefs_backup(string phase) {
     buffer_to_file(snapshot, latest_filename);
     buffer_to_file(restore, latest_restore_filename);
 
-    set_property(INTERNAL + "lastPrefsBackupFile", filename);
-    set_property(INTERNAL + "lastPrefsBackupRestoreFile", restore_filename);
-    set_property(INTERNAL + "lastPrefsBackupPhase", phase);
-    set_property(INTERNAL + "lastPrefsBackupStamp", stamp);
+    set_property(TOOL_INTERNAL + "lastBackupFile", filename);
+    set_property(TOOL_INTERNAL + "lastBackupRestoreFile", restore_filename);
+    set_property(TOOL_INTERNAL + "lastBackupPhase", phase);
+    set_property(TOOL_INTERNAL + "lastBackupStamp", stamp);
 
     print("Preference backup written: data/" + filename, "green");
     print("Reviewable restore commands: data/" + restore_filename, "green");
@@ -366,12 +390,12 @@ string prefs_backup(string phase) {
 
 void prefs_checkpoint(string phase) {
     initialize_defaults();
-    if (!pref_bool("prefsBackupEnabled", true)) {
-        print("LoopTheSeaPrefs checkpoint skipped: backups are disabled.", "yellow");
+    if (!tool_pref_bool("backupEnabled", true)) {
+        print("KoLmafiaPrefGuard checkpoint skipped: backups are disabled.", "yellow");
         return;
     }
-    if (!pref_bool("prefsBackupBeforeRiskyPhases", true)) {
-        print("LoopTheSeaPrefs checkpoint skipped: risky-phase backups are disabled.", "yellow");
+    if (!tool_pref_bool("checkpointBackupsEnabled", true)) {
+        print("KoLmafiaPrefGuard checkpoint skipped: checkpoint backups are disabled.", "yellow");
         return;
     }
     prefs_backup(phase);
@@ -392,13 +416,13 @@ void prefs_audit() {
     int warnings = 0;
     int notices = 0;
 
-    print("LoopTheSea preference audit", "teal");
-    string last_backup = get_property(INTERNAL + "lastPrefsBackupFile");
+    print("KoLmafia preference guard audit", "teal");
+    string last_backup = get_property(TOOL_INTERNAL + "lastBackupFile");
     if (last_backup == "") {
-        warnings = audit_warning(warnings, "No LoopTheSea preference backup has been recorded yet. Run `LoopTheSeaPrefs backup`.");
+        warnings = audit_warning(warnings, "No KoLmafiaPrefGuard backup has been recorded yet. Run `KoLmafiaPrefGuard backup`.");
     } else {
         print("Last logical backup: data/" + last_backup
-            + " [" + get_property(INTERNAL + "lastPrefsBackupPhase") + "]", "green");
+            + " [" + get_property(TOOL_INTERNAL + "lastBackupPhase") + "]", "green");
     }
 
     if (get_property("valueOfAdventure").to_int() <= 0) {
@@ -413,12 +437,12 @@ void prefs_audit() {
     if (get_property("skateParkStatus") == "") {
         warnings = audit_warning(warnings, "skateParkStatus is blank, which can confuse Fishy/Lutz routing.");
     }
-    if (pref_bool("ascendEnabled", false)) {
-        if (pref_string("className", "") == "") warnings = audit_warning(warnings, PREF + "className is blank while automated ascension is enabled.");
-        if (pref_string("moonId", "") == "") warnings = audit_warning(warnings, PREF + "moonId is blank while automated ascension is enabled.");
-        if (pref_string("gender", "") == "") warnings = audit_warning(warnings, PREF + "gender is blank while automated ascension is enabled.");
+    if (loop_pref_bool("ascendEnabled", false)) {
+        if (loop_pref_string("className", "") == "") warnings = audit_warning(warnings, PREF + "className is blank while automated ascension is enabled.");
+        if (loop_pref_string("moonId", "") == "") warnings = audit_warning(warnings, PREF + "moonId is blank while automated ascension is enabled.");
+        if (loop_pref_string("gender", "") == "") warnings = audit_warning(warnings, PREF + "gender is blank while automated ascension is enabled.");
     }
-    if (pref_bool("leg2BuildPantogram", true) && get_property("_pantogramModifier") != ""
+    if (loop_pref_bool("leg2BuildPantogram", true) && get_property("_pantogramModifier") != ""
         && !get_property("_pantogramModifier").contains_text("env(underwater)")) {
         warnings = audit_warning(warnings, "Current Pantogram pants do not show the underwater pressure modifier.");
     }
@@ -459,23 +483,22 @@ string command_argument(string input, string command, string fallback) {
 
 void status() {
     initialize_defaults();
-    print("LoopTheSeaPrefs", "teal");
-    print("Backups enabled: " + pref_bool("prefsBackupEnabled", true), "gray");
-    print("Risky-phase checkpoints: " + pref_bool("prefsBackupBeforeRiskyPhases", true), "gray");
-    print("Fullday preflight audit: " + pref_bool("prefsAuditBeforeFullday", true), "gray");
-    print("Backup prefix: " + pref_string("prefsBackupPrefix", "LoopTheSea_prefs"), "gray");
-    if (get_property(INTERNAL + "lastPrefsBackupFile") == "") {
+    print("KoLmafiaPrefGuard", "teal");
+    print("Backups enabled: " + tool_pref_bool("backupEnabled", true), "gray");
+    print("Checkpoint backups: " + tool_pref_bool("checkpointBackupsEnabled", true), "gray");
+    print("Backup prefix: " + tool_pref_string("backupPrefix", "KoLmafiaPrefGuard_prefs"), "gray");
+    if (get_property(TOOL_INTERNAL + "lastBackupFile") == "") {
         print("No recorded backup yet.", "yellow");
     } else {
-        print("Last backup: data/" + get_property(INTERNAL + "lastPrefsBackupFile")
-            + " [" + get_property(INTERNAL + "lastPrefsBackupPhase") + "]", "green");
+        print("Last backup: data/" + get_property(TOOL_INTERNAL + "lastBackupFile")
+            + " [" + get_property(TOOL_INTERNAL + "lastBackupPhase") + "]", "green");
     }
 }
 
 void help() {
-    print("Usage: LoopTheSeaPrefs audit | backup [phase] | checkpoint [phase] | status", "teal");
-    print("Manual backup: `LoopTheSeaPrefs backup before-experiment`.", "teal");
-    print("LoopTheSea still calls `LoopTheSeaPrefs checkpoint <phase>` at risky phase boundaries.", "teal");
+    print("Usage: KoLmafiaPrefGuard audit | backup [phase] | checkpoint [phase] | status", "teal");
+    print("Manual backup: `KoLmafiaPrefGuard backup before-experiment`.", "teal");
+    print("Standalone utility; LoopTheSea does not call it automatically.", "teal");
 }
 
 void main(string input) {

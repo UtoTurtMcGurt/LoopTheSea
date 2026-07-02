@@ -7,7 +7,7 @@ Start with:
 ```text
 LoopTheSea status
 LoopTheSea preflight
-LoopTheSeaPrefs audit
+KoLmafiaPrefGuard audit
 ```
 
 ## Common Preferences
