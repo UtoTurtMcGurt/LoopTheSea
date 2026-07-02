@@ -19,17 +19,6 @@ Then read the current phase:
 - post-UnderTheSea aftercore
 - Leg2 rollover complete
 
-## Preference Backups
-
-LoopTheSea can write reviewable preference backups:
-
-```text
-KoLmafiaPrefGuard backup manual
-KoLmafiaPrefGuard audit
-```
-
-Backups are written under KoLmafia's `data/` directory with `KoLmafiaPrefGuard_prefs_` filenames. The snapshot and audit logic lives in the standalone `KoLmafiaPrefGuard` utility, and LoopTheSea does not call it automatically. These files can contain account-specific preference data and should not be committed to Git.
-
 ## Common Resume Patterns
 
 If Leg1 completed and you are at the pre-Valhalla checkpoint:

@@ -16,7 +16,6 @@ Then validate:
 
 ```text
 validate LoopTheSea
-validate KoLmafiaPrefGuard
 validate UnderTheSeaPrep
 validate LoopTheSeaPearlCCS
 validate LoopTheSeaBofaFishyCCS
@@ -66,7 +65,6 @@ Start with read-only checks:
 ```text
 LoopTheSea status
 LoopTheSea preflight
-KoLmafiaPrefGuard audit
 ```
 
 For a guarded first operational run, use the staged commands instead of full automation:
@@ -104,18 +102,9 @@ LoopTheSea fullday
 LoopTheSea reset
 ```
 
-Preference backup/audit commands are provided by the standalone utility:
-
-```text
-KoLmafiaPrefGuard status
-KoLmafiaPrefGuard audit
-KoLmafiaPrefGuard backup before-experiment
-```
-
 ## Safety Notes
 
 - Do not enable automated ascension until `LoopTheSea ascend preflight` passes.
-- Keep your own KoLmafia preference backups. `KoLmafiaPrefGuard` writes reviewable snapshots when run manually, but power loss or preference corruption can still put KoLmafia in a confused state.
 - Review `LoopTheSea status` after any crash before resuming.
 - `maximizerCombinationLimit` is deliberately not managed by LoopTheSea. Set it yourself if your local maximizer searches become too expensive.
 

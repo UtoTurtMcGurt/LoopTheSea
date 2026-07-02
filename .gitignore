@@ -7,9 +7,7 @@ plots/
 mallprices.txt
 svn/
 
-# LoopTheSea generated state and backups
-data/LoopTheSea_prefs_*
-data/*backup*
+# LoopTheSea generated state
 *.bak
 *.log
 DEBUG_*.txt

@@ -7,7 +7,6 @@ Start with:
 ```text
 LoopTheSea status
 LoopTheSea preflight
-KoLmafiaPrefGuard audit
 ```
 
 Common preferences can also be edited from KoLmafia's relay browser with:
