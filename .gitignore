@@ -1,0 +1,31 @@
+# KoLmafia runtime/user data
+sessions/
+settings/
+ccs/
+planting/
+plots/
+mallprices.txt
+svn/
+
+# LoopTheSea generated state and backups
+data/LoopTheSea_prefs_*
+data/*backup*
+*.bak
+*.log
+DEBUG_*.txt
+
+# Local validation/runtime sandboxes
+.validate/
+.agents/
+.codex/
+
+# Local/private inventory and audit dumps
+data/gear-audit-dump.tsv
+data/inventory_snapshot.txt
+GearAuditDump.ash
+KoLmafia-inspect.jar
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
