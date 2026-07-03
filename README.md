@@ -35,15 +35,17 @@ LoopTheSea expects several external scripts and account capabilities.
 
 Required or commonly required:
 
-- `garbo`
-- `CONSUME`
-- `UnderTheSea`
+- [Garbage Collector (Garbo)](https://github.com/loathers/garbage-collector)
+  for `garbo`
+- [soolar/CONSUME.ash](https://github.com/soolar/CONSUME.ash)
+- [Astro3207/UnderTheSea](https://github.com/Astro3207/UnderTheSea)
 - KoLmafia with ASH support and current item/effect data
 
 Optional but strongly recommended:
 
-- `ptrack` for profit checkpoints
-- `pvp_mab` for end-of-Leg1 PvP
+- [Prusias-kol/pTrack](https://github.com/Prusias-kol/pTrack) for profit checkpoints
+- [Pantocyclus/PVP_MAB](https://github.com/Pantocyclus/PVP_MAB) for end-of-Leg1 PvP
+- [loathers/combo](https://github.com/loathers/combo) / BeachComber support for Leg1 beach-comb turn burning
 
 See [docs/dependencies.md](docs/dependencies.md) for more detail.
 
@@ -64,6 +66,7 @@ Start with read-only checks:
 
 ```text
 LoopTheSea status
+LoopTheSea sim
 LoopTheSea preflight
 ```
 
@@ -86,6 +89,7 @@ LoopTheSea fullday
 
 ```text
 LoopTheSea status
+LoopTheSea sim
 LoopTheSea preflight
 LoopTheSea breakfast
 LoopTheSea leg1

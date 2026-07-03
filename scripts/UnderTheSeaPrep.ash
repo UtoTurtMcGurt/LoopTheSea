@@ -1294,12 +1294,6 @@ void use_chroner_item(item it, string used_property) {
 }
 
 void use_remaining_chroner_items() {
-    if (!pref_bool("useRemainingChronerItems", true)) {
-        print("Final Leg1 Chroner cleanup skipped by "
-            + PREF + "useRemainingChronerItems=false.", "yellow");
-        return;
-    }
-
     // The cross only becomes usable after the trigger, so breakfast can miss it.
     use_chroner_item(CHRONER_TRIGGER, "_chronerTriggerUsed");
     use_chroner_item(CHRONER_CROSS, "_chronerCrossUsed");
@@ -1726,7 +1720,7 @@ void print_residual_turn_status() {
     print("- final KoLmafia breakfast sweep: " + pref_bool("runLateBreakfast", true)
         + "; completed today: " + get_property("breakfastCompleted")
         + "; command: \"" + pref_string("lateBreakfastCommand", "breakfast") + "\"");
-    print("- final Chroner cleanup: " + pref_bool("useRemainingChronerItems", true)
+    print("- final Chroner cleanup: available-gated"
         + "; trigger used: " + get_property("_chronerTriggerUsed")
         + "; cross used: " + get_property("_chronerCrossUsed"));
     print("- Mr. Store 2002: spend=" + pref_bool("spend2002Credits", true)

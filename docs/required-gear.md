@@ -2,6 +2,11 @@
 
 This page describes the gear and familiar requirements for the full LoopTheSea
 route. It separates true blockers from configurable or purchasable support.
+For live account context, run:
+
+```text
+LoopTheSea sim
+```
 
 LoopTheSea is not intended as a low-resource general account script. Some pieces
 can be bought or assembled after prism, but the account still needs access to

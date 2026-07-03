@@ -5,6 +5,7 @@ Preliminary orchestration for the UnderTheSea loop.
 
 Usage:
   LoopTheSea status
+  LoopTheSea sim
   LoopTheSea preflight
   LoopTheSea breakfast
   LoopTheSea leg1
@@ -236,7 +237,6 @@ void initialize_defaults() {
     set_default("leg2BreakfastCommand", "breakfast");
     set_default("leg2RunLateDailySweep", "true");
     set_default("leg2RerunBreakfastAtRollover", "true");
-    set_default("leg2UseRemainingChronerItems", "true");
     set_default("leg2Spend2002Credits", "true");
     set_default("leg2MrStore2002Reward", "Spooky VHS Tape");
     set_default("leg2LateDailyCommand", "");
@@ -740,8 +740,6 @@ void use_leg2_chroner_item(item it, string used_property) {
 }
 
 void use_remaining_leg2_chroner_items() {
-    if (!pref_bool("leg2UseRemainingChronerItems", true)) return;
-
     // The cross only becomes usable after the trigger, so one breakfast pass can miss it.
     use_leg2_chroner_item(CHRONER_TRIGGER, "_chronerTriggerUsed");
     use_leg2_chroner_item(CHRONER_CROSS, "_chronerCrossUsed");
@@ -1194,7 +1192,7 @@ void status() {
         + "; breakfastCompleted=" + get_property("breakfastCompleted"));
     print("Leg2 late daily sweep: enabled=" + pref_bool("leg2RunLateDailySweep", true)
         + "; rerun breakfast=" + pref_bool("leg2RerunBreakfastAtRollover", true)
-        + "; Chroner=" + pref_bool("leg2UseRemainingChronerItems", true)
+        + "; Chroner cleanup=available-gated"
         + "; 2002 credits=" + pref_bool("leg2Spend2002Credits", true)
         + "; reward=\"" + pref_string("leg2MrStore2002Reward", "Spooky VHS Tape") + "\""
         + "; turn burn=\"" + pref_string("leg2LateDailyTurnBurnCommand", "garbo nodiet") + "\""
@@ -1289,6 +1287,229 @@ void status() {
         + "; protected before UnderTheSea="
         + get_property(INTERNAL + "porquoiseClosetedBeforeUnderSea")
         + "; Pantogram modifier=\"" + get_property("_pantogramModifier") + "\"");
+}
+
+int sim_owned(item it) {
+    return item_amount(it) + closet_amount(it) + storage_amount(it) + equipped_amount(it);
+}
+
+string sim_bool(boolean value) {
+    return value ? "yes" : "no";
+}
+
+void sim_line(boolean ok, string name, string detail) {
+    print((ok ? "OK   " : "MISS ") + name + " - " + detail, ok ? "blue" : "red");
+}
+
+void sim_item(string name, item it, int target, boolean can_buy, int max_price) {
+    int owned = sim_owned(it);
+    string detail = it + "; have=" + item_amount(it)
+        + ", closet=" + closet_amount(it)
+        + ", storage=" + storage_amount(it)
+        + ", equipped=" + equipped_amount(it)
+        + ", total=" + owned;
+    if (target > 0) detail += ", target=" + target + ", short=" + max(0, target - owned);
+    if (can_buy && can_interact()) {
+        int price = mall_price(it);
+        detail += ", mall=" + price;
+        if (max_price > 0) detail += ", cap=" + max_price + ", buyable=" + sim_bool(price > 0 && price <= max_price);
+    }
+    sim_line(target <= 0 || owned >= target, name, detail);
+}
+
+void sim_skill(string name, skill sk, string detail) {
+    sim_line(have_skill(sk), name + ": " + sk, detail);
+}
+
+void sim_skill_name(string name, string skill_name, string detail) {
+    skill sk = skill_name.to_skill();
+    sim_line(sk != $skill[none] && have_skill(sk), name + ": " + skill_name, detail);
+}
+
+void sim_familiar(string name, familiar fam, string detail) {
+    sim_line(have_familiar(fam), name + ": " + fam, detail);
+}
+
+void sim_section(string title) {
+    print("");
+    print(title, "blue");
+}
+
+void sim_required_core() {
+    sim_section("Required Core Items");
+    sim_item("Drunkula wineglass", WINEGLASS, 1, false, 0);
+    sim_item("Eternity Codpiece", CODPIECE, 1, false, 0);
+    sim_item("Unblemished pearls", PEARL, 5, false, 0);
+    sim_item("Fishy pipe", FISHY_PIPE, 1, false, 0);
+    sim_item("Grouper Groupie rings", $item[gill rings], 1, false, 0);
+}
+
+void sim_leg1_items() {
+    sim_section("Leg1 Organ Lock And Pearl Farming");
+    sim_item("Organ lock weapon", ANGELBONE_TOTEM, 1, false, 0);
+    sim_item("Organ lock shirt", DEVILBONE_CORSET, 1, false, 0);
+    sim_item("Organ lock pants", DEVILBONE_GREAVES, 1, false, 0);
+    sim_item("Organ lock accessory", ANGELBONE_CHOPSTICKS, 1, false, 0);
+    sim_item("Leg1 Fishy fallback", FISHY_TEA, 1, true, pref_int("leg2GillTeaMaxPrice", 100000));
+    sim_item("Muscle potion", $item[Mer-kin strongjuice], 1, true, 5000);
+    sim_item("Muscle potion", $item[philter of phorce], 1, true, 5000);
+    sim_item("Muscle potion", $item[Ferrigno's Elixir of Power], 1, true, 5000);
+    sim_item("Air supply pants option", $item[really\, really nice swimming trunks], 1, false, 0);
+    sim_item("Air supply hat option", $item[aerated diving helmet], 1, false, 0);
+    sim_item("Air supply hat option", $item[crappy Mer-kin mask], 1, false, 0);
+    sim_item("Air supply hat option", $item[Mer-kin gladiator mask], 1, false, 0);
+    sim_item("Air supply hat option", $item[Mer-kin scholar mask], 1, false, 0);
+    sim_item("Air supply purchase option", $item[old SCUBA tank], 1, false, 0);
+    sim_item("Air supply fallback", $item[Elf Guard SCUBA tank], 1, false, 0);
+    sim_item("Combat/buff support", $item[crunchy brush], 1, false, 0);
+    sim_item("Resistance support", $item[scroll of minor invulnerability], 1, true, pref_int("leg2MinorInvulnerabilityMaxPrice", 5000));
+}
+
+void sim_leg1_finish_items() {
+    sim_section("Leg1 Finish And Pre-Ascension Items");
+    sim_item("Day shortener", $item[day shortener], 1, false, 0);
+    sim_item("Confusing LED clock", $item[confusing LED clock], 1, true, 100000);
+    sim_item("Mayam Calendar", $item[Mayam Calendar], 1, false, 0);
+    sim_item("Government per-diem", GOVERNMENT_PER_DIEM, 1, false, 0);
+    sim_item("Chroner trigger", CHRONER_TRIGGER, 1, false, 0);
+    sim_item("Chroner cross", CHRONER_CROSS, 1, false, 0);
+    sim_item("2002 Mr. Store Catalog", MR_STORE_2002_CATALOG, 1, false, 0);
+    sim_item("Configured 2002 reward", pref_string("leg2MrStore2002Reward", "Spooky VHS Tape").to_item(), 0, false, 0);
+    sim_item("CSA fire-starting kit", $item[CSA fire-starting kit], 1, false, 0);
+    sim_item("Beach Comb", $item[Beach Comb], 1, false, 0);
+    sim_item("Driftwood beach comb", $item[driftwood beach comb], 1, false, 0);
+    sim_item("Piece of driftwood", $item[piece of driftwood], 1, true, 0);
+    sim_item("Grain of sand", $item[grain of sand], 3, false, 0);
+    sim_item("Extra time", $item[extra time], 1, false, 0);
+}
+
+void sim_cookbookbat_items() {
+    sim_section("Pre-Ascension Cookbookbat Foods");
+    sim_item("Deep Dish of Legend", $item[Deep Dish of Legend], 1, false, 0);
+    sim_item("Calzone of Legend", $item[Calzone of Legend], 1, false, 0);
+    sim_item("Pizza of Legend", $item[Pizza of Legend], 1, false, 0);
+    sim_item("Baked veggie ricotta casserole", $item[baked veggie ricotta casserole], 3, false, 0);
+    sim_item("Plain calzone", $item[plain calzone], 3, false, 0);
+    sim_item("Roasted vegetable focaccia", $item[roasted vegetable focaccia], 3, false, 0);
+    sim_item("Pete's rich ricotta", $item[Pete's rich ricotta], 3, false, 0);
+    sim_item("Roasted vegetable of Jarlsberg", $item[roasted vegetable of Jarlsberg], 3, false, 0);
+    sim_item("Boris's bread", $item[Boris's bread], 3, false, 0);
+    sim_item("Yeast of Boris", $item[Yeast of Boris], 2, true, 0);
+    sim_item("Vegetable of Jarlsberg", $item[Vegetable of Jarlsberg], 2, true, 0);
+    sim_item("St. Sneaky Pete's Whey", $item[St. Sneaky Pete's Whey], 2, true, 0);
+}
+
+void sim_preascension_acquisition_items() {
+    sim_section("Pre-Ascension Acquisition Helpers");
+    sim_item("Borrowed time", $item[borrowed time], 1, false, 0);
+    sim_item("Non-Euclidean angle", $item[non-Euclidean angle], 1, false, 0);
+    sim_item("Abstraction: category", $item[abstraction: category], 1, false, 0);
+    sim_item("Tobiko marble soda", $item[tobiko marble soda], 1, false, 0);
+    sim_item("Wasabi marble soda", $item[wasabi marble soda], 1, false, 0);
+    sim_item("Dinseylandfill ticket", $item[one-day ticket to Dinseylandfill], 1, false, 0);
+    sim_item("SMOL salad fork", $item[Ol' Scratch's salad fork], 1, false, 0);
+    sim_item("SMOL frosty mug", $item[Frosty's frosty mug], 1, false, 0);
+}
+
+void sim_leg2_items() {
+    sim_section("Leg2 UnderTheSea And Pearl Items");
+    string left_sacrifice = pref_string("leg2PantogramLeftSacrifice", "glowing New Age crystal").to_lower_case();
+    sim_item("Letter from King Ralph XI", KING_RALPH_LETTER, 0, false, 0);
+    sim_item("Pork elf goodies sack", PORK_ELF_GOODIES_SACK, 0, false, 0);
+    sim_item("Porquoise", porquoise_item(), 1, false, 0);
+    sim_item("Portable pantogram", PORTABLE_PANTOGRAM, 1, false, 0);
+    sim_item("Pantogram pants", PANTOGRAM_PANTS, 1, false, 0);
+    sim_item("Pantogram pressure sacrifice", SEA_SALT_CRYSTAL, 11, true, pref_int("leg2SeaSaltCrystalMaxPrice", 5000));
+    if (left_sacrifice == "hp" || left_sacrifice == "max hp" || left_sacrifice == "-1"
+        || left_sacrifice == "mp" || left_sacrifice == "max mp" || left_sacrifice == "-2") {
+        sim_line(true, "Pantogram left sacrifice", "configured no-item fallback: "
+            + pref_string("leg2PantogramLeftSacrifice", "glowing New Age crystal"));
+    } else {
+        sim_item("Pantogram left sacrifice", pref_string("leg2PantogramLeftSacrifice", "glowing New Age crystal").to_item(), 1, false, 0);
+    }
+    sim_item("Saltwaterbed", SALTWATERBED, 1, false, 0);
+    sim_item("Sea leather", "sea leather".to_item(), 15, true, pref_int("leg2SealeatherMaxPrice", 5000));
+}
+
+void sim_leg2_pressure_items() {
+    sim_section("Leg2 Pressure And Pearl Outfit");
+    sim_item("Cozy bazooka", COZY_BAZOOKA, 1, true, pref_int("leg2GearMaxPrice", 1000000));
+    sim_item("Fish bazooka component", FISH_BAZOOKA, 1, true, pref_int("leg2GearMaxPrice", 1000000));
+    sim_item("Bazooka cozy component", BAZOOKA_COZY, 1, true, pref_int("leg2GearMaxPrice", 1000000));
+    sim_item("Goggles of Loathing", GOGGLES_OF_LOATHING, 1, false, 0);
+    sim_item("Aquamariner's necklace", AQUAMARINERS_NECKLACE, 1, false, 0);
+    sim_item("Aquamariner's ring", AQUAMARINERS_RING, 1, false, 0);
+    sim_item("Teflon swim fins", TEFLON_SWIM_FINS, 1, false, 0);
+    sim_item("Das Boot", DAS_BOOT, 1, false, 0);
+    sim_item("Li'l Businessman Kit", LIL_BUSINESSMAN_KIT, 1, false, 0);
+}
+
+void sim_leg2_consumables() {
+    sim_section("Leg2 Consumables And Buff Support");
+    sim_item("Fish sauce", FISH_SAUCE, 1, true, pref_int("leg2FishSauceMaxPrice", 10000));
+    sim_item("Cuppa Gill tea", FISHY_TEA, 1, true, pref_int("leg2GillTeaMaxPrice", 100000));
+    sim_item("Shark cartilage", SHARK_CARTILAGE, 1, true, pref_int("leg2SharkCartilageMaxPrice", 50000));
+    sim_item("Shavin' razor", SHAVIN_RAZOR, 1, true, pref_int("leg2ShavinRazorMaxPrice", 10000));
+    sim_item("Mer-kin fastjuice", MERKIN_FASTJUICE, 1, true, pref_int("leg2FastjuiceMaxPrice", 5000));
+    sim_item("Donho recording", DONHO_RECORDING, 1, true, pref_int("leg2DonhoRecordingMaxPrice", 50000));
+    sim_item("Donho single", DONHO_SINGLE, 1, false, 0);
+    sim_item("Minor invulnerability", SCROLL_MINOR_INVULNERABILITY, 1, true, pref_int("leg2MinorInvulnerabilityMaxPrice", 5000));
+    sim_item("Protection from Bad Stuff", SCROLL_PROTECTION_BAD_STUFF, 1, true, pref_int("leg2ResistancePotionMaxPrice", 5000));
+    sim_item("Pec oil", PEC_OIL, 1, true, pref_int("leg2ResistancePotionMaxPrice", 5000));
+    sim_item("Programmable turtle", PROGRAMMABLE_TURTLE, 1, true, pref_int("leg2ResistancePotionMaxPrice", 5000));
+    sim_item("Smudge stick", SMUDGE_STICK, 1, true, pref_int("leg2ResistancePotionMaxPrice", 5000));
+    sim_item("Oil of Parrrlay", OIL_OF_PARRRLAY, 1, true, pref_int("leg2ResistancePotionMaxPrice", 5000));
+    sim_item("Soft green echo eyedrop antidote", SOFT_GREEN_ECHO_EYEDROP_ANTIDOTE, 1, true, pref_int("leg2NegativeEffectCureMaxPrice", 5000));
+    sim_item("Pile of wet dates", PILE_OF_WET_DATES, 1, true, pref_int("leg2WetDatesMaxPrice", 40000));
+}
+
+void sim_familiars_and_skills() {
+    sim_section("Familiars And Skills");
+    sim_familiar("Stooper", STOOPER, "Leg1 nightcap familiar");
+    sim_familiar("Grouper Groupie", GROUPER_GROUPIE, "Leg1 sea access/item helper");
+    sim_familiar("Urchin Urchin", URCHIN_URCHIN, "Leg2 pearl familiar option");
+    sim_familiar("Hobo Monkey", HOBO_MONKEY, "Leg2 meat familiar option");
+    sim_skill("Curse of Weaksauce", $skill[Curse of Weaksauce], "Leg2 pearl CCS opener");
+    sim_skill("Saucegeyser", $skill[Saucegeyser], "Leg2 pearl CCS kill spell");
+    sim_skill_name("Extract", "Extract", "Optional Source Terminal extraction");
+    sim_skill_name("Donho's Bubbly Ballad", "Donho's Bubbly Ballad", "Leg2 pressure song");
+    sim_item("Source Terminal", SOURCE_TERMINAL, 1, false, 0);
+    sim_item("Monodent of the Sea", MONODENT_OF_THE_SEA, 1, false, 0);
+}
+
+void sim_context() {
+    prepare_loop_state();
+    print("LoopTheSea sim", "blue");
+    print("Read-only context. No gear, buy, consume, use, retrieve, adventure, or maximize actions are performed.", "teal");
+    print("Buyable lines may read mall prices for context.", "teal");
+    print("Phase: " + current_phase() + "; path=" + path_name()
+        + "; can_interact=" + can_interact()
+        + "; adventures=" + my_adventures());
+    print("Organs: fullness " + my_fullness() + "/" + fullness_limit()
+        + "; liver " + my_inebriety() + "/" + inebriety_limit()
+        + "; spleen " + my_spleen_use() + "/" + spleen_limit());
+    print("Leg2 cozy bazooka: " + cozy_bazooka_status());
+    print("Leg2 BOFA Fishy: enabled=" + pref_bool("leg2UseBofaFishy", true)
+        + "; available=" + leg2_bofa_fishy_available()
+        + "; attempts=" + leg2_bofa_fishy_attempts_used()
+        + "/" + pref_int("leg2BofaFishyMaxAttempts", 3)
+        + "; projected=" + leg2_bofa_fishy_projected_turns());
+    print("Pearls: held=" + held_pearl_count()
+        + "; mounted=" + mounted_pearl_count()
+        + "; unfinished combats=" + projected_unfinished_pearl_combats());
+
+    sim_required_core();
+    sim_leg1_items();
+    sim_leg1_finish_items();
+    sim_cookbookbat_items();
+    sim_preascension_acquisition_items();
+    sim_leg2_items();
+    sim_leg2_pressure_items();
+    sim_leg2_consumables();
+    sim_familiars_and_skills();
+
+    print("");
+    print("Note: `MISS` can be acceptable for optional fallbacks, alternate air supply, or items the script can buy under configured caps.", "teal");
 }
 
 void preflight() {
@@ -3929,7 +4150,7 @@ void reset_checkpoints() {
 }
 
 void help() {
-    print("Usage: LoopTheSea status | preflight | breakfast | leg1 | leg1full | leg1rollover | ascend preflight | ascend | undersea | leg2 | postrun | rollover | run | fullday | reset", "teal");
+    print("Usage: LoopTheSea status | sim | preflight | breakfast | leg1 | leg1full | leg1rollover | ascend preflight | ascend | undersea | leg2 | postrun | rollover | run | fullday | reset", "teal");
     print("Today-full Leg1 path: run `LoopTheSea leg1full`.", "teal");
     print("Today-full Leg2 path after manual ascension: run `LoopTheSea leg2`.", "teal");
     print("Hands-off path: run `LoopTheSea fullday` after setting " + PREF + "ascendEnabled=true.", "teal");
@@ -3944,6 +4165,10 @@ void main(string input) {
     switch (mode) {
         case "status":
             status();
+            return;
+        case "sim":
+        case "simulate":
+            sim_context();
             return;
         case "preflight":
             preflight();
