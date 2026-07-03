@@ -1307,10 +1307,6 @@ void sim_line(boolean ok, string name, string detail) {
         + sim_symbol(ok) + " " + name + suffix + "</span>");
 }
 
-void sim_line(boolean ok, string name) {
-    sim_line(ok, name, "");
-}
-
 boolean sim_quantity_available_or_buyable(item it, int quantity, int max_price) {
     if (sim_owned(it) >= quantity) return true;
     if (!can_interact()) return false;
@@ -1375,31 +1371,24 @@ string sim_fishy_source_detail() {
     return sim_quantity_detail(FISHY_TEA, 1, pref_int("leg2GillTeaMaxPrice", 100000));
 }
 
-item [int] sim_air_sources() {
-    item [int] result;
-    result[0] = $item[really\, really nice swimming trunks];
-    result[1] = $item[aerated diving helmet];
-    result[2] = $item[crappy Mer-kin mask];
-    result[3] = $item[Mer-kin gladiator mask];
-    result[4] = $item[Mer-kin scholar mask];
-    result[5] = $item[old SCUBA tank];
-    result[6] = $item[Elf Guard SCUBA tank];
-    return result;
-}
-
 boolean sim_air_supply_available() {
-    item [int] air_sources = sim_air_sources();
-    foreach i, it in air_sources {
-        if (sim_owned(it) > 0) return true;
-    }
-    return false;
+    return sim_owned($item[really\, really nice swimming trunks]) > 0
+        || sim_owned($item[aerated diving helmet]) > 0
+        || sim_owned($item[crappy Mer-kin mask]) > 0
+        || sim_owned($item[Mer-kin gladiator mask]) > 0
+        || sim_owned($item[Mer-kin scholar mask]) > 0
+        || sim_owned($item[old SCUBA tank]) > 0
+        || sim_owned($item[Elf Guard SCUBA tank]) > 0;
 }
 
 string sim_air_supply_detail() {
-    item [int] air_sources = sim_air_sources();
-    foreach i, it in air_sources {
-        if (sim_owned(it) > 0) return it;
-    }
+    if (sim_owned($item[really\, really nice swimming trunks]) > 0) return "really, really nice swimming trunks";
+    if (sim_owned($item[aerated diving helmet]) > 0) return "aerated diving helmet";
+    if (sim_owned($item[crappy Mer-kin mask]) > 0) return "crappy Mer-kin mask";
+    if (sim_owned($item[Mer-kin gladiator mask]) > 0) return "Mer-kin gladiator mask";
+    if (sim_owned($item[Mer-kin scholar mask]) > 0) return "Mer-kin scholar mask";
+    if (sim_owned($item[old SCUBA tank]) > 0) return "old SCUBA tank";
+    if (sim_owned($item[Elf Guard SCUBA tank]) > 0) return "Elf Guard SCUBA tank";
     return "missing recognized underwater air source";
 }
 
