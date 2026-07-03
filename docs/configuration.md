@@ -19,10 +19,9 @@ relay_LoopTheSea.ash
 The relay page only saves preferences. It does not run LoopTheSea or spend
 resources. See [preferences-gui.md](preferences-gui.md).
 
-`LoopTheSea sim` is a read-only inventory and account-context report. It does
-not equip, buy, use, retrieve, consume, adventure, or maximize. Use it to see
-which hard-coded LoopTheSea item names are present, missing, optional, or
-buyable under configured caps.
+`LoopTheSea sim` is a read-only readiness report. It does not equip, buy, use,
+retrieve, consume, adventure, or maximize. Use it for a quick check of required
+items, nice-to-have support, and optional miscellany before running the loop.
 
 ## Common Preferences
 
