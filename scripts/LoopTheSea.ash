@@ -1442,6 +1442,11 @@ boolean sim_leg2_pearl_farming_enabled() {
     return mode == "FARM" || mode == "ALWAYS";
 }
 
+boolean sim_campground_has_item(item it) {
+    int [item] campground = get_campground();
+    return campground[it] > 0;
+}
+
 void sim_requirements() {
     sim_section("Requirements");
     sim_required_item("Drunkula's wineglass", WINEGLASS);
@@ -1476,16 +1481,16 @@ void sim_requirements() {
 
 void sim_nice_to_haves() {
     sim_section("Nice To Haves");
-    sim_line(campground_has_item(SALTWATERBED), "Saltwaterbed installed",
-        campground_has_item(SALTWATERBED) ? "" : "not installed");
+    sim_line(sim_campground_has_item(SALTWATERBED), "Saltwaterbed installed",
+        sim_campground_has_item(SALTWATERBED) ? "" : "not installed");
     sim_skill_name("Donho's Bubbly Ballad", "Donho's Bubbly Ballad", "");
     sim_line(leg2_bofa_fishy_available(), "BOFA Fishy route",
         leg2_bofa_fishy_available()
             ? "projected " + leg2_bofa_fishy_projected_turns() + " turns"
             : "not currently route-ready");
     sim_skill_name("Source Terminal Extract", "Extract", "");
-    sim_line(campground_has_item(SOURCE_TERMINAL), "Source Terminal installed",
-        campground_has_item(SOURCE_TERMINAL) ? "" : "not installed");
+    sim_line(sim_campground_has_item(SOURCE_TERMINAL), "Source Terminal installed",
+        sim_campground_has_item(SOURCE_TERMINAL) ? "" : "not installed");
     sim_required_item("Monodent of the Sea", MONODENT_OF_THE_SEA);
     sim_familiar("Urchin Urchin", URCHIN_URCHIN, "");
     sim_familiar("Hobo Monkey", HOBO_MONKEY, "");
