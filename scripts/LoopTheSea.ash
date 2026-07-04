@@ -2401,6 +2401,23 @@ string leg2_core_pressure_gear_locks() {
         + ", equip " + TEFLON_SWIM_FINS;
 }
 
+string leg2_pressure_gear_item_status(item it) {
+    return it + ": inventory=" + item_amount(it)
+        + ", closet=" + closet_amount(it)
+        + ", equipped=" + have_equipped(it)
+        + ", available=" + available_amount(it);
+}
+
+void print_leg2_pressure_gear_diagnostics() {
+    print("Leg2 pressure gear diagnostics:", "red");
+    print("- " + leg2_pressure_gear_item_status(COZY_BAZOOKA), "red");
+    print("- " + leg2_pressure_gear_item_status(GOGGLES_OF_LOATHING), "red");
+    print("- " + leg2_pressure_gear_item_status(AQUAMARINERS_NECKLACE), "red");
+    print("- " + leg2_pressure_gear_item_status(AQUAMARINERS_RING), "red");
+    print("- " + leg2_pressure_gear_item_status(TEFLON_SWIM_FINS), "red");
+    print("- cozy bazooka status: " + cozy_bazooka_status(), "red");
+}
+
 string leg2_core_pressure_gear_maximizer() {
     return leg2_core_pressure_gear_locks()
         + ", " + pref_string("leg2PressureMaximizer",
@@ -2415,13 +2432,19 @@ int auto_pantogram_element_choice() {
     ensure_leg2_core_pressure_gear();
     int best_zone = -1;
     float weakest_resistance = 999999.0;
+    int failed_assessments = 0;
+    string [int] failed_expressions;
     foreach zone_index, loc in PEARL_LOCATIONS {
         string expression = PEARL_MAXIMIZERS[zone_index] + ", "
             + leg2_core_pressure_gear_locks()
             + ", -tie";
         print("Assessing Pantogram resistance target: " + expression, "teal");
         if (!maximize(expression, false)) {
-            abort("Unable to assess Pantogram resistance target for " + loc + ".");
+            print("Unable to assess Pantogram resistance target for " + loc
+                + "; continuing with the remaining elements.", "red");
+            failed_expressions[failed_assessments] = loc + ": " + expression;
+            failed_assessments = failed_assessments + 1;
+            continue;
         }
 
         item pants = equipped_item($slot[pants]);
@@ -2438,7 +2461,14 @@ int auto_pantogram_element_choice() {
         }
     }
 
-    if (best_zone < 0) abort("Unable to choose an automatic Pantogram resistance element.");
+    if (best_zone < 0) {
+        print("Unable to choose an automatic Pantogram resistance element; every maximizer probe failed.", "red");
+        print_leg2_pressure_gear_diagnostics();
+        foreach i, expression in failed_expressions {
+            print("- failed maximizer: " + expression, "red");
+        }
+        abort("Unable to choose an automatic Pantogram resistance element. See pressure gear diagnostics above.");
+    }
     int choice = pantogram_choice_for_zone(best_zone);
     set_property(INTERNAL + "leg2PantogramElementChoice", choice);
     print("Automatic Pantogram resistance target: " + pantogram_element_modifier_for_choice(choice)
