@@ -415,6 +415,25 @@ void take_from_closet_if_needed(item it, int quantity) {
     run_cli("closet take " + to_take + " " + it);
 }
 
+int stage_fishy_pipe_for_initial_garbo() {
+    if (item_amount(FISHY_PIPE) == 0) {
+        take_from_closet_if_needed(FISHY_PIPE, 1);
+    }
+    if (item_amount(FISHY_PIPE) == 0
+        && can_interact()
+        && storage_amount(FISHY_PIPE) > 0) {
+        take_storage(1, FISHY_PIPE);
+    }
+
+    int staged = item_amount(FISHY_PIPE);
+    if (staged > 0) {
+        print("Staged " + staged + " " + FISHY_PIPE
+            + " for post-Garbo Fishy use before hiding it from initial Garbo.",
+            "teal");
+    }
+    return staged;
+}
+
 boolean have_accessible_component(item it) {
     return item_amount(it) > 0 || closet_amount(it) > 0 || have_equipped(it);
 }
@@ -1564,7 +1583,7 @@ void maybe_run_initial_garbo() {
     string previous_storage_satisfaction = get_property("autoSatisfyWithStorage");
 
     if (preserve_fishy) {
-        protected_pipe_count = item_amount(FISHY_PIPE);
+        protected_pipe_count = stage_fishy_pipe_for_initial_garbo();
         if (protected_pipe_count > 0
             && !put_closet(protected_pipe_count, FISHY_PIPE)) {
             abort("Unable to closet " + protected_pipe_count + " " + FISHY_PIPE
