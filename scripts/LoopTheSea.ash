@@ -415,25 +415,6 @@ void take_from_closet_if_needed(item it, int quantity) {
     run_cli("closet take " + to_take + " " + it);
 }
 
-int stage_fishy_pipe_for_initial_garbo() {
-    if (item_amount(FISHY_PIPE) == 0) {
-        take_from_closet_if_needed(FISHY_PIPE, 1);
-    }
-    if (item_amount(FISHY_PIPE) == 0
-        && can_interact()
-        && storage_amount(FISHY_PIPE) > 0) {
-        take_storage(1, FISHY_PIPE);
-    }
-
-    int staged = item_amount(FISHY_PIPE);
-    if (staged > 0) {
-        print("Staged " + staged + " " + FISHY_PIPE
-            + " for post-Garbo Fishy use before hiding it from initial Garbo.",
-            "teal");
-    }
-    return staged;
-}
-
 boolean have_accessible_component(item it) {
     return item_amount(it) > 0 || closet_amount(it) > 0 || have_equipped(it);
 }
@@ -1583,7 +1564,7 @@ void maybe_run_initial_garbo() {
     string previous_storage_satisfaction = get_property("autoSatisfyWithStorage");
 
     if (preserve_fishy) {
-        protected_pipe_count = stage_fishy_pipe_for_initial_garbo();
+        protected_pipe_count = item_amount(FISHY_PIPE);
         if (protected_pipe_count > 0
             && !put_closet(protected_pipe_count, FISHY_PIPE)) {
             abort("Unable to closet " + protected_pipe_count + " " + FISHY_PIPE
@@ -2435,6 +2416,17 @@ void print_leg2_pressure_gear_diagnostics() {
     print("- " + leg2_pressure_gear_item_status(AQUAMARINERS_RING), "red");
     print("- " + leg2_pressure_gear_item_status(TEFLON_SWIM_FINS), "red");
     print("- cozy bazooka status: " + cozy_bazooka_status(), "red");
+    print("- current base/buffed stats: Muscle " + my_basestat($stat[Muscle])
+        + "/" + my_buffedstat($stat[Muscle])
+        + ", Mysticality " + my_basestat($stat[Mysticality])
+        + "/" + my_buffedstat($stat[Mysticality])
+        + ", Moxie " + my_basestat($stat[Moxie])
+        + "/" + my_buffedstat($stat[Moxie]) + ".", "red");
+    print("- pressure gear stat requirements: " + GOGGLES_OF_LOATHING
+        + " requires 150 Mysticality; " + AQUAMARINERS_NECKLACE
+        + " and " + AQUAMARINERS_RING + " require 85 Mysticality; "
+        + COZY_BAZOOKA + " requires 85 Moxie; " + TEFLON_SWIM_FINS
+        + " requires 85 Muscle.", "red");
 }
 
 string leg2_core_pressure_gear_maximizer() {
@@ -3967,8 +3959,8 @@ void leg2_after_undersea() {
     }
 
     maybe_install_saltwaterbed();
-    build_leg2_pantogram_pants();
     ensure_leg2_turn_budget();
+    build_leg2_pantogram_pants();
     farm_leg2_pearls();
     finish_leg2_rollover();
 }
