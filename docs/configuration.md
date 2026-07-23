@@ -32,6 +32,11 @@ loopTheSea_profitTrackingEnabled
 loopTheSea_profitTrackingRequired
 loopTheSea_profitTrackingRecap
 loopTheSea_underTheSeaCommand
+loopTheSea_leg1PearlPolicy
+loopTheSea_leg1PearlFarmRoute
+loopTheSea_allowOrganLockPearlFarming
+loopTheSea_leg1PearlBuyMaxPrice
+loopTheSea_leg1PearlManualCheckpoint
 loopTheSea_leg2PearlMode
 loopTheSea_leg2PearlTargetCount
 loopTheSea_leg2PearlBuffer
@@ -74,6 +79,48 @@ LoopTheSea ascend
 
 ## Pearl Modes
 
+Leg1 pearl routing is being split into a public-facing acquisition policy and a
+separate farming route:
+
+```text
+loopTheSea_leg1PearlPolicy
+loopTheSea_leg1PearlFarmRoute
+loopTheSea_allowOrganLockPearlFarming
+loopTheSea_leg1PearlBuyMaxPrice
+loopTheSea_leg1PearlManualCheckpoint
+```
+
+Public-safe defaults are:
+
+```text
+loopTheSea_leg1PearlPolicy = VALUE
+loopTheSea_leg1PearlFarmRoute = AUTO
+loopTheSea_allowOrganLockPearlFarming = false
+```
+
+`LoopTheSea sim` and `LoopTheSea preflight` will advise players to opt into the
+advanced organ-lock route when Drunkula's wineglass, Stooper, the organ-lock
+gear, and basic Sea support are detected. The advanced route uses:
+
+```text
+loopTheSea_leg1PearlPolicy = ALWAYS_FARM
+loopTheSea_leg1PearlFarmRoute = ORGAN_LOCK
+loopTheSea_allowOrganLockPearlFarming = true
+```
+
+The advanced route defaults to a conservative underwater familiar package:
+
+```text
+underTheSeaPrep_pearlFamiliar = Grouper Groupie
+underTheSeaPrep_pearlFamiliarEquipment = gill rings
+```
+
+`Grouper Groupie` is the default because it can adventure underwater without
+spending the familiar item slot on breathing support. `gill rings` are a safe
+historical default, not a pearl-drop requirement. Advanced users may set a
+different familiar or familiar item, including `none`, but the final outfit must
+still pass KoLmafia's underwater access checks before turns are spent.
+
 Leg2 pearl behavior is controlled by:
 
 ```text
@@ -86,7 +133,11 @@ Typical modes:
 - `REPORT`: report expected value without farming.
 - `NEVER`: skip Leg2 pearl farming.
 
-Leg1 pearl policy is handled by `UnderTheSeaPrep`.
+Operationally, `ORGAN_LOCK` still uses `UnderTheSeaPrep postgarbo`. Non-organ
+routes use held or bought pearls, then call `UnderTheSeaPrep finishplain` for
+Codpiece mounting, pre-ascension cleanup, ordinary turn burning, and PvP.
+`RESERVED_TURNS` is reserved for the future normal-turn pearl farming branch
+and will currently stop with a clear message.
 
 ## Player-Owned Preferences
 

@@ -12,11 +12,32 @@ LoopTheSea is not intended as a low-resource general account script. Some pieces
 can be bought or assembled after prism, but the account still needs access to
 the relevant slots, familiars, effects, paths, and dependency scripts.
 
-## Always Required For The Full Loop
+## Always Required For 11,037 Leagues Looping
 
-These are hard blockers for the intended Leg1 -> 11,037 Leagues -> Leg2 loop.
+These are hard blockers for the intended Leg1 -> 11,037 Leagues -> Leg2 loop
+when the next UnderTheSea run should start with pearls smuggled through the
+Codpiece.
 
 - `The Eternity Codpiece`
+- five `unblemished pearl`, held or mounted before ascension
+
+Why:
+
+- The Codpiece smuggles five mounted pearls into the next UnderTheSea run.
+- The pearls are consumed by the 11,037 Leagues Under the Sea run.
+
+LoopTheSea can use held pearls, buy missing pearls when configured, or use an
+advanced farm route when the account opts into it.
+
+## Advanced Leg1 Organ-Lock Route
+
+These are required only when:
+
+```text
+loopTheSea_leg1PearlFarmRoute = ORGAN_LOCK
+loopTheSea_allowOrganLockPearlFarming = true
+```
+
 - `Drunkula's wineglass`
 - `angelbone totem`
 - `devilbone corset`
@@ -26,23 +47,33 @@ These are hard blockers for the intended Leg1 -> 11,037 Leagues -> Leg2 loop.
 
 Why:
 
-- The Codpiece smuggles five mounted pearls into the next UnderTheSea run.
 - The wineglass lets Garbo/LoopTheSea use overdrunk turns.
 - The angelbone/devilbone organ-lock set is explicitly equipped and verified
-  during Leg1 and Leg2 expanded-organ routing.
-- Stooper is required for the nightcap phases.
+  during expanded-organ routing.
+- Stooper is required for the nightcap phase that enters the overdrunk route.
 
 ## Leg1 Pearl Farming
 
-Leg1 pearl farming runs while overdrunk and usually overfull/overtoxic, so it
-has stricter equipment locks than ordinary Sea adventuring.
+The advanced Leg1 pearl farm runs while overdrunk and usually
+overfull/overtoxic, so it has stricter equipment locks than ordinary Sea
+adventuring.
 
 Hard requirements:
 
-- `Grouper Groupie` familiar
-- `gill rings`
+- a familiar/familiar-equipment plan that can adventure underwater
 - one valid underwater air source that can still satisfy resistance checks
 - enough resistance gear/buffs to reach `18` resistance for each targeted zone
+
+Default familiar plan:
+
+- `Grouper Groupie`
+- `gill rings`
+
+`Grouper Groupie` is the default because it naturally supports underwater
+adventuring, leaving the familiar item slot free. `gill rings` are the script's
+safe default familiar item, but they are configurable with
+`underTheSeaPrep_pearlFamiliarEquipment`; pearls are forced by zone progress,
+not by familiar item drop.
 
 Air-supply candidates, in script order:
 

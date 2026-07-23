@@ -152,7 +152,15 @@ void save_all(string [string] fields) {
     save_string(fields, PREP_PREF + "minOrganLockTurns");
     save_string(fields, PREP_PREF + "muscleFloor");
     save_string(fields, PREP_PREF + "extraPearlBuffCommands");
+    save_string(fields, PREP_PREF + "pearlFamiliar");
+    save_string(fields, PREP_PREF + "pearlFamiliarEquipment");
     save_bool(fields, PREP_PREF + "runPvp");
+    save_string(fields, LOOP_PREF + "leg1PearlPolicy");
+    save_string(fields, LOOP_PREF + "leg1PearlFarmRoute");
+    save_bool(fields, LOOP_PREF + "allowOrganLockPearlFarming");
+    save_string(fields, LOOP_PREF + "leg1PearlBuyMaxPrice");
+    save_bool(fields, LOOP_PREF + "leg1PearlManualCheckpoint");
+    save_bool(fields, LOOP_PREF + "showPearlRouteAdvice");
 
     save_string(fields, LOOP_PREF + "leg2PearlMode");
     save_string(fields, LOOP_PREF + "leg2PearlTargetCount");
@@ -220,7 +228,15 @@ void apply_alpha_defaults() {
     set_property(LOOP_PREF + "leg2UseWetDatesRollover", "false");
     set_property(LOOP_PREF + "profitTrackingRequired", "false");
     set_property(LOOP_PREF + "protectPorquoiseBeforeUnderSea", "true");
+    set_property(LOOP_PREF + "leg1PearlPolicy", "VALUE");
+    set_property(LOOP_PREF + "leg1PearlFarmRoute", "AUTO");
+    set_property(LOOP_PREF + "allowOrganLockPearlFarming", "false");
+    set_property(LOOP_PREF + "leg1PearlBuyMaxPrice", "100000");
+    set_property(LOOP_PREF + "leg1PearlManualCheckpoint", "true");
+    set_property(LOOP_PREF + "showPearlRouteAdvice", "true");
     set_property(PREP_PREF + "pearlPolicy", "ALWAYS");
+    set_property(PREP_PREF + "pearlFamiliar", "Grouper Groupie");
+    set_property(PREP_PREF + "pearlFamiliarEquipment", "gill rings");
 }
 
 void write_run_flow_section() {
@@ -252,13 +268,21 @@ void write_ascension_section() {
 }
 
 void write_leg1_section() {
-    writeln("<fieldset><legend>Leg1 UnderTheSeaPrep</legend>");
+    writeln("<fieldset><legend>Leg1 Pearls and UnderTheSeaPrep</legend>");
+    write_select(LOOP_PREF + "leg1PearlPolicy", "LoopTheSea pearl policy", "Public-facing Leg1 pearl acquisition policy for the route refactor.", "VALUE|ALWAYS_FARM|BUY_MISSING|HELD_ONLY|SKIP");
+    write_select(LOOP_PREF + "leg1PearlFarmRoute", "LoopTheSea farm route", "AUTO keeps public defaults conservative; ORGAN_LOCK opts into the advanced Wineglass route.", "AUTO|ORGAN_LOCK|RESERVED_TURNS|MANUAL_CHECKPOINT");
+    write_bool(LOOP_PREF + "allowOrganLockPearlFarming", "Allow organ-lock farming", "Opt-in gate for the Drunkula's wineglass overdrunk/expanded-organ route.");
+    write_number(LOOP_PREF + "leg1PearlBuyMaxPrice", "Leg1 pearl buy max", "Maximum per-pearl mall price for buy-missing/value routing.");
+    write_bool(LOOP_PREF + "leg1PearlManualCheckpoint", "Allow manual pearl checkpoint", "Stop clearly before ascension when automatic pearl acquisition is blocked.");
+    write_bool(LOOP_PREF + "showPearlRouteAdvice", "Show route advice", "Display sim/preflight recommendations when advanced organ-lock gear is detected.");
     write_select(PREP_PREF + "pearlPolicy", "Pearl policy", "ALWAYS farms all unfinished Leg1 pearl zones.", "ALWAYS|ENSURE_FIVE|NEVER");
     write_number(PREP_PREF + "gillTeaMaxPrice", "Gill tea max price", "Leg1 paid Fishy fallback.");
     write_number(PREP_PREF + "pearlBuffer", "Pearl buffer", "Extra turns reserved for Sea variance.");
     write_number(PREP_PREF + "minOrganLockTurns", "Minimum organ-lock turns", "Usually 50.");
     write_number(PREP_PREF + "muscleFloor", "Muscle floor", "Leg1 overdrunk combat safety floor.");
     write_text(PREP_PREF + "extraPearlBuffCommands", "Extra pearl buff commands", "Optional CLI commands before Leg1 pearl turns.");
+    write_text(PREP_PREF + "pearlFamiliar", "Leg1 pearl familiar", "Default Grouper Groupie. Set none to avoid changing familiar.");
+    write_text(PREP_PREF + "pearlFamiliarEquipment", "Leg1 pearl familiar item", "Default gill rings. Set none to leave familiar item unlocked.");
     write_bool(PREP_PREF + "runPvp", "Run pvp_mab", "End-of-Leg1 PvP after the stone break setup.");
     writeln("</fieldset>");
 }

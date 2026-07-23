@@ -150,6 +150,34 @@ int pref_int(string key, int fallback) {
     return value.to_int();
 }
 
+string prep_pref_string(string key, string fallback) {
+    string value = get_property("underTheSeaPrep_" + key);
+    if (value == "") return fallback;
+    return value;
+}
+
+familiar configured_leg1_pearl_familiar() {
+    string raw = prep_pref_string("pearlFamiliar", "Grouper Groupie");
+    if (raw.to_lower_case() == "none") return $familiar[none];
+
+    familiar fam = raw.to_familiar();
+    if (fam == $familiar[none]) {
+        abort("Invalid underTheSeaPrep_pearlFamiliar: " + raw + ". Use a familiar name or none.");
+    }
+    return fam;
+}
+
+item configured_leg1_pearl_familiar_equipment() {
+    string raw = prep_pref_string("pearlFamiliarEquipment", "gill rings");
+    if (raw == "" || raw.to_lower_case() == "none") return $item[none];
+
+    item it = raw.to_item();
+    if (it == $item[none]) {
+        abort("Invalid underTheSeaPrep_pearlFamiliarEquipment: " + raw + ". Use an item name or none.");
+    }
+    return it;
+}
+
 string trim_string(string value) {
     matcher m = create_matcher("^\\s*(.*?)\\s*$", value);
     if (m.find()) return m.group(1);
@@ -274,6 +302,12 @@ void initialize_defaults() {
     set_default("useGovernmentPerDiem", "true");
     set_default("dailyRaffleTickets", "11");
     set_default("protectPorquoiseBeforeUnderSea", "true");
+    set_default("leg1PearlPolicy", "VALUE");
+    set_default("leg1PearlFarmRoute", "AUTO");
+    set_default("allowOrganLockPearlFarming", "false");
+    set_default("leg1PearlBuyMaxPrice", "100000");
+    set_default("leg1PearlManualCheckpoint", "true");
+    set_default("showPearlRouteAdvice", "true");
     set_default("leg1PrepareRollover", "true");
     set_default("leg1RolloverAdventureCap", "200");
     set_default("leg1RolloverMaximizer", "adv, 0.001 pvp fights, -tie");
@@ -1176,6 +1210,13 @@ void status() {
     print("Configured initial Garbo: run=" + pref_bool("runInitialGarbo", false)
         + "; command=\"" + pref_string("initialGarboCommand", "garbo ascend") + "\""
         + "; preserve Fishy pipe/Lutz=" + pref_bool("preserveInitialGarboFishy", true));
+    print("Leg1 pearl routing: policy=" + pref_string("leg1PearlPolicy", "VALUE")
+        + "; farmRoute=" + pref_string("leg1PearlFarmRoute", "AUTO")
+        + "; allowOrganLock=" + pref_bool("allowOrganLockPearlFarming", false)
+        + "; buyMax=" + pref_int("leg1PearlBuyMaxPrice", 100000)
+        + "; manualCheckpoint=" + pref_bool("leg1PearlManualCheckpoint", true));
+    print("Leg1 organ-lock pearl familiar: familiar=" + configured_leg1_pearl_familiar()
+        + "; equipment=" + configured_leg1_pearl_familiar_equipment());
     print("Initial Garbo retry guard: allowPartialRetry="
         + pref_bool("allowPartialInitialGarboRetry", false)
         + "; activityToday=" + initial_garbo_activity_today()
@@ -1442,6 +1483,310 @@ boolean sim_leg2_pearl_farming_enabled() {
     return mode == "FARM" || mode == "ALWAYS";
 }
 
+string append_missing(string existing, string name) {
+    if (existing == "") return name;
+    return existing + ", " + name;
+}
+
+boolean sim_organ_lock_core_available() {
+    return sim_owned(WINEGLASS) > 0
+        && sim_owned(ANGELBONE_TOTEM) > 0
+        && sim_owned(DEVILBONE_CORSET) > 0
+        && sim_owned(DEVILBONE_GREAVES) > 0
+        && sim_owned(ANGELBONE_CHOPSTICKS) > 0
+        && have_familiar(STOOPER);
+}
+
+string sim_organ_lock_core_missing_detail() {
+    string missing = "";
+    if (sim_owned(WINEGLASS) <= 0) missing = append_missing(missing, "Drunkula's wineglass");
+    if (sim_owned(ANGELBONE_TOTEM) <= 0) missing = append_missing(missing, "angelbone totem");
+    if (sim_owned(DEVILBONE_CORSET) <= 0) missing = append_missing(missing, "devilbone corset");
+    if (sim_owned(DEVILBONE_GREAVES) <= 0) missing = append_missing(missing, "devilbone greaves");
+    if (sim_owned(ANGELBONE_CHOPSTICKS) <= 0) missing = append_missing(missing, "angelbone chopsticks");
+    if (!have_familiar(STOOPER)) missing = append_missing(missing, "Stooper");
+    return missing == "" ? "complete" : "missing " + missing;
+}
+
+boolean sim_leg1_pearl_familiar_available() {
+    familiar fam = configured_leg1_pearl_familiar();
+    return fam == $familiar[none] || have_familiar(fam);
+}
+
+boolean sim_leg1_pearl_familiar_equipment_available() {
+    item familiar_item = configured_leg1_pearl_familiar_equipment();
+    return familiar_item == $item[none] || sim_owned(familiar_item) > 0;
+}
+
+string sim_leg1_pearl_familiar_detail() {
+    familiar fam = configured_leg1_pearl_familiar();
+    item familiar_item = configured_leg1_pearl_familiar_equipment();
+    string detail = fam == $familiar[none] ? "familiar not locked" : "familiar=" + fam;
+    if (familiar_item == $item[none]) return detail + "; equipment not locked";
+    return detail + "; familiar item=" + familiar_item;
+}
+
+boolean sim_organ_lock_pearl_support_available() {
+    return sim_leg1_pearl_familiar_available()
+        && sim_leg1_pearl_familiar_equipment_available()
+        && sim_fishy_source_available()
+        && sim_air_supply_available();
+}
+
+string sim_organ_lock_pearl_support_detail() {
+    string missing = "";
+    familiar fam = configured_leg1_pearl_familiar();
+    item familiar_item = configured_leg1_pearl_familiar_equipment();
+    if (fam != $familiar[none] && !have_familiar(fam)) missing = append_missing(missing, "" + fam);
+    if (familiar_item != $item[none] && sim_owned(familiar_item) <= 0) {
+        missing = append_missing(missing, "" + familiar_item);
+    }
+    if (!sim_fishy_source_available()) missing = append_missing(missing, "Fishy source");
+    if (!sim_air_supply_available()) missing = append_missing(missing, "underwater air supply");
+    return missing == "" ? "base Sea support present; " + sim_leg1_pearl_familiar_detail() : "missing " + missing;
+}
+
+boolean leg1_organ_lock_configured() {
+    return pref_bool("allowOrganLockPearlFarming", false)
+        || pref_string("leg1PearlFarmRoute", "AUTO").to_upper_case() == "ORGAN_LOCK";
+}
+
+boolean leg1_public_pearl_defaults_configured() {
+    return pref_string("leg1PearlPolicy", "VALUE").to_upper_case() == "VALUE"
+        && pref_string("leg1PearlFarmRoute", "AUTO").to_upper_case() == "AUTO"
+        && !pref_bool("allowOrganLockPearlFarming", false);
+}
+
+void print_leg1_pearl_route_advice() {
+    if (!pref_bool("showPearlRouteAdvice", true)) return;
+
+    boolean core_ready = sim_organ_lock_core_available();
+    boolean sea_ready = sim_organ_lock_pearl_support_available();
+    boolean advanced_configured = leg1_organ_lock_configured();
+
+    print("");
+    print("Leg1 Pearl Route Advice", "blue");
+    print("Current settings: " + PREF + "leg1PearlPolicy="
+        + pref_string("leg1PearlPolicy", "VALUE")
+        + "; " + PREF + "leg1PearlFarmRoute="
+        + pref_string("leg1PearlFarmRoute", "AUTO")
+        + "; " + PREF + "allowOrganLockPearlFarming="
+        + pref_bool("allowOrganLockPearlFarming", false), "teal");
+
+    sim_line(core_ready, "Advanced organ-lock core", sim_organ_lock_core_missing_detail());
+    sim_line(sea_ready, "Advanced organ-lock Sea support",
+        sim_organ_lock_pearl_support_detail());
+
+    if (core_ready && sea_ready && !advanced_configured) {
+        print("Recommendation: this account appears ready for the advanced Leg1 organ-lock pearl route.", "green");
+        print("To opt in, set:", "teal");
+        print("  set " + PREF + "leg1PearlPolicy = ALWAYS_FARM", "teal");
+        print("  set " + PREF + "leg1PearlFarmRoute = ORGAN_LOCK", "teal");
+        print("  set " + PREF + "allowOrganLockPearlFarming = true", "teal");
+        print("The script will still validate resistance, Fishy duration, and turn budget at runtime.", "teal");
+    } else if (core_ready && sea_ready) {
+        print("Advanced organ-lock Leg1 pearl routing is enabled or explicitly selected.", "green");
+        print("The script will still validate resistance, Fishy duration, and turn budget at runtime.", "teal");
+    } else if (leg1_public_pearl_defaults_configured()) {
+        print("Public-safe Leg1 pearl defaults are appropriate for this account right now.", "green");
+        print("LoopTheSea will use held or bought pearls before considering organ-lock farming.", "teal");
+    } else {
+        print("Recommendation: keep the public-safe Leg1 pearl route unless you intentionally want a manual checkpoint or a reserved-turn farm.", "yellow");
+    }
+}
+
+string normalized_leg1_pearl_policy() {
+    string policy = pref_string("leg1PearlPolicy", "VALUE").to_upper_case().replace_string(" ", "_");
+    if (policy == "ALWAYS" || policy == "FARM") policy = "ALWAYS_FARM";
+    if (policy == "NEVER") policy = "HELD_ONLY";
+    if (policy != "VALUE"
+        && policy != "ALWAYS_FARM"
+        && policy != "BUY_MISSING"
+        && policy != "HELD_ONLY"
+        && policy != "SKIP") {
+        abort("Invalid " + PREF + "leg1PearlPolicy: " + policy
+            + ". Use VALUE, ALWAYS_FARM, BUY_MISSING, HELD_ONLY, or SKIP.");
+    }
+    return policy;
+}
+
+string normalized_leg1_pearl_farm_route() {
+    string route = pref_string("leg1PearlFarmRoute", "AUTO").to_upper_case().replace_string(" ", "_");
+    if (route == "ORGANLOCK") route = "ORGAN_LOCK";
+    if (route == "RESERVED") route = "RESERVED_TURNS";
+    if (route == "CHECKPOINT") route = "MANUAL_CHECKPOINT";
+    if (route != "AUTO"
+        && route != "ORGAN_LOCK"
+        && route != "RESERVED_TURNS"
+        && route != "MANUAL_CHECKPOINT") {
+        abort("Invalid " + PREF + "leg1PearlFarmRoute: " + route
+            + ". Use AUTO, ORGAN_LOCK, RESERVED_TURNS, or MANUAL_CHECKPOINT.");
+    }
+    return route;
+}
+
+int total_leg1_pearl_count() {
+    return held_pearl_count() + mounted_pearl_count();
+}
+
+boolean leg1_policy_can_buy_pearls(string policy) {
+    return policy == "VALUE" || policy == "BUY_MISSING";
+}
+
+boolean leg1_organ_lock_route_available() {
+    return sim_organ_lock_core_available() && sim_organ_lock_pearl_support_available();
+}
+
+string resolve_leg1_pearl_route() {
+    string route = normalized_leg1_pearl_farm_route();
+    string policy = normalized_leg1_pearl_policy();
+
+    if (route == "ORGAN_LOCK") return "ORGAN_LOCK";
+    if (route == "RESERVED_TURNS") return "RESERVED_TURNS";
+    if (route == "MANUAL_CHECKPOINT") return "MANUAL_CHECKPOINT";
+
+    if (policy == "ALWAYS_FARM") {
+        if (pref_bool("allowOrganLockPearlFarming", false)
+            && leg1_organ_lock_route_available()) return "ORGAN_LOCK";
+        return "RESERVED_TURNS";
+    }
+
+    if (policy == "SKIP") return "SKIP";
+
+    if (pref_bool("allowOrganLockPearlFarming", false)
+        && policy == "VALUE"
+        && leg1_organ_lock_route_available()
+        && total_leg1_pearl_count() < 5) {
+        return "ORGAN_LOCK";
+    }
+
+    return "NON_ORGAN";
+}
+
+void print_non_organ_leg1_preflight(string route) {
+    string policy = normalized_leg1_pearl_policy();
+    int total = total_leg1_pearl_count();
+    int missing = max(0, 5 - total);
+
+    print("Leg1 prep preflight: route=" + route
+        + "; policy=" + policy
+        + "; pearls held/mounted=" + total + "/5.", "teal");
+    sim_required_item("The Eternity Codpiece", CODPIECE);
+
+    if (policy == "SKIP") {
+        print("Warning: Leg1 pearl preparation is skipped. Automated 11,037 Leagues ascension will still require five mounted Codpiece pearls.", "yellow");
+        return;
+    }
+
+    if (missing <= 0) {
+        print("Leg1 non-organ route has enough held/mounted pearls for Codpiece mounting.", "green");
+        return;
+    }
+
+    if (leg1_policy_can_buy_pearls(policy)) {
+        int cap = pref_int("leg1PearlBuyMaxPrice", 100000);
+        int price = can_interact() ? mall_price(PEARL) : 0;
+        if (price > 0 && price <= cap) {
+            print("Leg1 non-organ route can buy " + missing + " missing pearl(s) at "
+                + price + " Meat each under cap " + cap + ".", "green");
+        } else {
+            print("Leg1 non-organ route needs " + missing
+                + " pearl(s), but the current mall price is " + price
+                + " Meat and cap is " + cap + ".", "yellow");
+        }
+        return;
+    }
+
+    print("Leg1 non-organ route needs " + missing
+        + " more pearl(s), and policy " + policy + " does not permit buying.", "yellow");
+}
+
+void buy_missing_leg1_pearls(int missing) {
+    if (missing <= 0) return;
+    if (!can_interact()) {
+        abort("Leg1 pearl purchase needs " + missing
+            + " pearl(s), but mall access is unavailable.");
+    }
+
+    int cap = pref_int("leg1PearlBuyMaxPrice", 100000);
+    int price = mall_price(PEARL);
+    if (price <= 0 || price > cap) {
+        abort("Leg1 pearl purchase needs " + missing + " pearl(s), but "
+            + PEARL + " mall price is " + price + " Meat; configured cap is "
+            + cap + ".");
+    }
+
+    print("Buying " + missing + " missing Leg1 " + PEARL
+        + "(s) at or below " + cap + " Meat each.", "teal");
+    buy(missing, PEARL, cap);
+    if (total_leg1_pearl_count() < 5) {
+        abort("Leg1 pearl purchase did not reach five held/mounted pearls. Have "
+            + total_leg1_pearl_count() + "/5.");
+    }
+}
+
+void prepare_non_organ_leg1_pearls(string route) {
+    string policy = normalized_leg1_pearl_policy();
+    int missing = max(0, 5 - total_leg1_pearl_count());
+
+    if (policy == "SKIP") {
+        abort("Leg1 pearl policy SKIP is not compatible with automated 11,037 Leagues ascension. "
+            + "Set " + PREF + "leg1PearlPolicy=HELD_ONLY, BUY_MISSING, VALUE, or ALWAYS_FARM.");
+    }
+    if (route == "MANUAL_CHECKPOINT") {
+        if (pref_bool("leg1PearlManualCheckpoint", true)) {
+            abort("Leg1 pearl route MANUAL_CHECKPOINT selected. Prepare five mounted Codpiece pearls manually, then rerun with "
+                + PREF + "leg1PearlPolicy=HELD_ONLY.");
+        }
+        abort("Leg1 pearl route MANUAL_CHECKPOINT selected, but "
+            + PREF + "leg1PearlManualCheckpoint=false.");
+    }
+    if (route == "RESERVED_TURNS") {
+        abort("Leg1 reserved-turn pearl farming is selected, but that route is not implemented yet. "
+            + "Use ORGAN_LOCK, BUY_MISSING, HELD_ONLY, or MANUAL_CHECKPOINT for now.");
+    }
+
+    if (missing <= 0) {
+        print("Leg1 non-organ route has five held/mounted pearls available.", "green");
+        return;
+    }
+
+    if (leg1_policy_can_buy_pearls(policy)) {
+        buy_missing_leg1_pearls(missing);
+        return;
+    }
+
+    string message = "Leg1 non-organ route needs " + missing + " more pearl(s), but "
+        + PREF + "leg1PearlPolicy=" + policy + " does not permit buying.";
+    if (pref_bool("leg1PearlManualCheckpoint", true)) {
+        message = message + " Prepare the pearls manually and rerun with "
+            + PREF + "leg1PearlPolicy=HELD_ONLY.";
+    }
+    abort(message);
+}
+
+void run_leg1_postgarbo_route() {
+    string route = resolve_leg1_pearl_route();
+
+    if (route == "ORGAN_LOCK") {
+        if (!pref_bool("allowOrganLockPearlFarming", false)) {
+            abort("Leg1 organ-lock pearl route is selected, but "
+                + PREF + "allowOrganLockPearlFarming=false.");
+        }
+        if (!leg1_organ_lock_route_available()) {
+            abort("Leg1 organ-lock pearl route is selected, but the account is not ready: "
+                + sim_organ_lock_core_missing_detail() + "; "
+                + sim_organ_lock_pearl_support_detail() + ".");
+        }
+        run_cli("UnderTheSeaPrep postgarbo");
+        return;
+    }
+
+    prepare_non_organ_leg1_pearls(route);
+    print("Running non-organ Leg1 finish route. This skips Drunkula's wineglass and expanded-organ pearl farming.", "teal");
+    run_cli("UnderTheSeaPrep finishplain");
+}
+
 boolean sim_campground_has_item(item it) {
     int [item] campground = get_campground();
     return campground[it] > 0;
@@ -1449,20 +1794,35 @@ boolean sim_campground_has_item(item it) {
 
 void sim_requirements() {
     sim_section("Requirements");
-    sim_required_item("Drunkula's wineglass", WINEGLASS);
     sim_required_item("The Eternity Codpiece", CODPIECE);
     sim_line(held_pearl_count() + mounted_pearl_count() >= 5,
         "Five unblemished pearls",
         "held/mounted " + (held_pearl_count() + mounted_pearl_count()) + "/5");
-    sim_required_item("Organ lock weapon: angelbone totem", ANGELBONE_TOTEM);
-    sim_required_item("Organ lock shirt: devilbone corset", DEVILBONE_CORSET);
-    sim_required_item("Organ lock pants: devilbone greaves", DEVILBONE_GREAVES);
-    sim_required_item("Organ lock accessory: angelbone chopsticks", ANGELBONE_CHOPSTICKS);
-    sim_familiar("Stooper", STOOPER, "");
-    sim_familiar("Grouper Groupie", GROUPER_GROUPIE, "");
-    sim_required_item("Grouper Groupie item: gill rings", $item[gill rings]);
-    sim_line(sim_fishy_source_available(), "Fishy source", sim_fishy_source_detail());
-    sim_line(sim_air_supply_available(), "Underwater air supply", sim_air_supply_detail());
+
+    if (leg1_organ_lock_configured()) {
+        sim_required_item("Drunkula's wineglass", WINEGLASS);
+        sim_required_item("Organ lock weapon: angelbone totem", ANGELBONE_TOTEM);
+        sim_required_item("Organ lock shirt: devilbone corset", DEVILBONE_CORSET);
+        sim_required_item("Organ lock pants: devilbone greaves", DEVILBONE_GREAVES);
+        sim_required_item("Organ lock accessory: angelbone chopsticks", ANGELBONE_CHOPSTICKS);
+        sim_familiar("Stooper", STOOPER, "");
+        familiar leg1_fam = configured_leg1_pearl_familiar();
+        item leg1_fam_item = configured_leg1_pearl_familiar_equipment();
+        if (leg1_fam == $familiar[none]) {
+            sim_line(true, "Leg1 pearl familiar", "not locked by underTheSeaPrep_pearlFamiliar");
+        } else {
+            sim_familiar("Leg1 pearl familiar: " + leg1_fam, leg1_fam, "");
+        }
+        if (leg1_fam_item == $item[none]) {
+            sim_line(true, "Leg1 pearl familiar item", "not locked by underTheSeaPrep_pearlFamiliarEquipment");
+        } else {
+            sim_required_item("Leg1 pearl familiar item: " + leg1_fam_item, leg1_fam_item);
+        }
+        sim_line(sim_fishy_source_available(), "Fishy source", sim_fishy_source_detail());
+        sim_line(sim_air_supply_available(), "Underwater air supply", sim_air_supply_detail());
+    } else {
+        sim_line(true, "Leg1 organ-lock route", "not required by current settings");
+    }
 
     if (sim_leg2_pearl_farming_enabled()) {
         sim_line(sim_cozy_bazooka_ready(), "Leg2 pressure weapon: cozy bazooka", sim_cozy_bazooka_detail());
@@ -1525,6 +1885,7 @@ void sim_context() {
         + "; unfinished combats=" + projected_unfinished_pearl_combats());
 
     sim_requirements();
+    print_leg1_pearl_route_advice();
     sim_nice_to_haves();
     sim_miscellany();
 
@@ -1535,8 +1896,14 @@ void sim_context() {
 void preflight() {
     prepare_loop_state();
     print("LoopTheSea preflight", "blue");
-    print("Leg1 prep preflight follows.", "teal");
-    run_cli("UnderTheSeaPrep preflight");
+    print_leg1_pearl_route_advice();
+    string route = resolve_leg1_pearl_route();
+    if (route == "ORGAN_LOCK") {
+        print("Leg1 organ-lock prep preflight follows.", "teal");
+        run_cli("UnderTheSeaPrep preflight");
+    } else {
+        print_non_organ_leg1_preflight(route);
+    }
     print_postrun_pearl_report();
     print("LoopTheSea preflight complete.", "green");
 }
@@ -1634,7 +2001,7 @@ void leg1() {
 
     begin_profit_tracking_scope();
     try {
-        run_cli("UnderTheSeaPrep postgarbo");
+        run_leg1_postgarbo_route();
     } finally {
         end_profit_tracking_scope();
     }

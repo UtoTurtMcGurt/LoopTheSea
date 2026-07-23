@@ -7,6 +7,7 @@ Usage:
   UnderTheSeaPrep status
   UnderTheSeaPrep preflight
   UnderTheSeaPrep postgarbo
+  UnderTheSeaPrep finishplain
   UnderTheSeaPrep pearls
   UnderTheSeaPrep mount
 
@@ -22,7 +23,6 @@ item CODPIECE = $item[The Eternity Codpiece];
 item PEARL = $item[unblemished pearl];
 item GILL_TEA = $item[cuppa Gill tea];
 item FISHY_PIPE = $item[fishy pipe];
-item GILL_RINGS = $item[gill rings];
 item MERKIN_STRONGJUICE = $item[Mer-kin strongjuice];
 item PHILTER_OF_PHORCE = $item[philter of phorce];
 item FERRIGNOS_ELIXIR = $item[Ferrigno's Elixir of Power];
@@ -58,7 +58,6 @@ item OLD_SCUBA_TANK = $item[old SCUBA tank];
 item ELF_GUARD_SCUBA_TANK = $item[Elf Guard SCUBA tank];
 
 familiar STOOPER = $familiar[Stooper];
-familiar GROUPER_GROUPIE = $familiar[Grouper Groupie];
 
 boolean old_scuba_purchase_attempted = false;
 location BARF_MOUNTAIN = $location[Barf Mountain];
@@ -139,6 +138,28 @@ int pref_int(string key, int fallback) {
     string value = get_property(PREF + key);
     if (value == "") return fallback;
     return value.to_int();
+}
+
+familiar configured_pearl_familiar() {
+    string raw = pref_string("pearlFamiliar", "Grouper Groupie");
+    if (raw.to_lower_case() == "none") return $familiar[none];
+
+    familiar fam = raw.to_familiar();
+    if (fam == $familiar[none]) {
+        abort("Invalid " + PREF + "pearlFamiliar: " + raw + ". Use a familiar name or none.");
+    }
+    return fam;
+}
+
+item configured_pearl_familiar_equipment() {
+    string raw = pref_string("pearlFamiliarEquipment", "gill rings");
+    if (raw == "" || raw.to_lower_case() == "none") return $item[none];
+
+    item it = raw.to_item();
+    if (it == $item[none]) {
+        abort("Invalid " + PREF + "pearlFamiliarEquipment: " + raw + ". Use an item name or none.");
+    }
+    return it;
 }
 
 string pearl_policy() {
@@ -576,17 +597,29 @@ void apply_pearl_buffs(int zone_index) {
     if (extra != "") run_cli(extra);
 }
 
-void setup_groupie() {
-    if (!have_familiar(GROUPER_GROUPIE)) {
-        abort("Pearl farming requires Grouper Groupie.");
-    }
-    require_item(GILL_RINGS, "Pearl farming");
+void setup_pearl_familiar() {
+    familiar fam = configured_pearl_familiar();
+    item familiar_item = configured_pearl_familiar_equipment();
 
-    use_familiar(GROUPER_GROUPIE);
-    if (my_familiar() != GROUPER_GROUPIE) {
-        abort("Unable to switch to Grouper Groupie.");
+    if (fam != $familiar[none]) {
+        if (!have_familiar(fam)) {
+            abort("Pearl farming requires configured familiar " + fam + ".");
+        }
+
+        use_familiar(fam);
+        if (my_familiar() != fam) {
+            abort("Unable to switch to configured pearl familiar " + fam + ".");
+        }
+    } else {
+        print("Pearl familiar switching is disabled by " + PREF + "pearlFamiliar=none.", "yellow");
     }
-    equip_required($slot[familiar], GILL_RINGS, "Pearl farming");
+
+    if (familiar_item != $item[none]) {
+        require_item(familiar_item, "Pearl farming");
+        equip_required($slot[familiar], familiar_item, "Pearl farming");
+    } else {
+        print("Pearl familiar equipment is unlocked by " + PREF + "pearlFamiliarEquipment=none.", "yellow");
+    }
 }
 
 void ensure_fishy() {
@@ -658,9 +691,11 @@ boolean reject_air_supply(item supply, string reason, boolean verbose) {
 }
 
 string pearl_maximizer(int zone_index, item supply, boolean include_pants) {
+    item familiar_item = configured_pearl_familiar_equipment();
+    string familiar_lock = familiar_item == $item[none] ? "" : ", equip " + familiar_item;
     return "min " + pref_int("pearlResTarget", 18) + " " + PEARL_MAXIMIZERS[zone_index]
         + ", " + organ_lock_maximizer(include_pants)
-        + ", equip gill rings, equip " + supply + ", -tie";
+        + familiar_lock + ", equip " + supply + ", -tie";
 }
 
 boolean outfit_feasible(int zone_index, item supply, boolean include_pants, boolean verbose) {
@@ -682,7 +717,10 @@ boolean outfit_feasible(int zone_index, item supply, boolean include_pants, bool
         return reject_air_supply(supply, "devilbone greaves did not equip", verbose);
     }
     if (equipped_item($slot[acc1]) != ANGELBONE_CHOPSTICKS) return reject_air_supply(supply, "angelbone chopsticks did not equip", verbose);
-    if (equipped_item($slot[familiar]) != GILL_RINGS) return reject_air_supply(supply, "gill rings did not equip", verbose);
+    item familiar_item = configured_pearl_familiar_equipment();
+    if (familiar_item != $item[none] && equipped_item($slot[familiar]) != familiar_item) {
+        return reject_air_supply(supply, familiar_item + " did not equip", verbose);
+    }
 
     float resistance = numeric_modifier(PEARL_MODIFIERS[zone_index]);
     if (resistance < pref_int("pearlResTarget", 18)) {
@@ -810,7 +848,7 @@ void verify_pearl_turn_ready(int zone_index, item supply) {
     cure_beaten_up(context);
     ensure_fishy();
     verify_organ_lock(context, include_pants);
-    setup_groupie();
+    setup_pearl_familiar();
     ensure_muscle_floor();
     if (!air_supply_equipped(supply)) abort(context + ": underwater air supply is not equipped.");
     if (!can_adventure(PEARL_LOCATIONS[zone_index])) {
@@ -835,7 +873,7 @@ void verify_pearl_turn_ready(int zone_index, item supply) {
 int farm_pearl_zone(int zone_index, int noncombats_remaining) {
     if (pearl_zone_complete(zone_index)) return noncombats_remaining;
 
-    setup_groupie();
+    setup_pearl_familiar();
     apply_pearl_buffs(zone_index);
     item supply = select_air_supply(zone_index);
     print("Farming " + PEARL_LOCATIONS[zone_index] + " with " + supply + ".", "teal");
@@ -1664,6 +1702,25 @@ void burn_remaining_turns() {
     set_property(INTERNAL + "organLockActive", "false");
 }
 
+void burn_remaining_turns_without_organ_lock() {
+    if (my_adventures() <= 0) return;
+
+    string command = pref_string("plainTurnBurnCommand",
+        loop_pref_string("leg1OverflowGarboCommand", "garbo nodiet"));
+    if (command == "") {
+        abort("Non-organ Leg1 cleanup has " + my_adventures()
+            + " adventure(s) to burn, but no plain turn-burn command is configured.");
+    }
+
+    print("Burning " + my_adventures()
+        + " non-organ Leg1 cleanup adventure(s) with " + command + ".", "teal");
+    run_cli(command + " turns=" + my_adventures());
+    if (my_adventures() > 0) {
+        abort("Non-organ Leg1 cleanup turn burn left " + my_adventures()
+            + " adventure(s).");
+    }
+}
+
 void prep_and_run_pvp() {
     if (!pref_bool("runPvp", true)) {
         print("PvP skipped by " + PREF + "runPvp=false.", "yellow");
@@ -1740,6 +1797,8 @@ void status() {
     print("Organ lock active: " + organ_lock_active() + "; until turn: " + organ_lock_until_turn());
     print("Buffed Muscle: " + my_buffedstat($stat[Muscle])
         + "; floor: " + pref_int("muscleFloor", 2000));
+    print("Pearl familiar: " + configured_pearl_familiar()
+        + "; familiar equipment: " + configured_pearl_familiar_equipment());
     print("Held pearls: " + held_pearl_count() + "; mounted pearls: " + mounted_pearl_count());
     print_pearl_plan();
     print_fishy_status();
@@ -1755,9 +1814,13 @@ void require_preflight_items() {
     require_item(DEVILBONE_CORSET, "Preflight");
     require_item(DEVILBONE_GREAVES, "Preflight");
     require_item(ANGELBONE_CHOPSTICKS, "Preflight");
-    require_item(GILL_RINGS, "Preflight");
+    item familiar_item = configured_pearl_familiar_equipment();
+    if (familiar_item != $item[none]) require_item(familiar_item, "Preflight");
     if (!have_familiar(STOOPER)) abort("Preflight: missing Stooper.");
-    if (!have_familiar(GROUPER_GROUPIE)) abort("Preflight: missing Grouper Groupie.");
+    familiar fam = configured_pearl_familiar();
+    if (fam != $familiar[none] && !have_familiar(fam)) {
+        abort("Preflight: missing configured pearl familiar " + fam + ".");
+    }
 }
 
 void preflight() {
@@ -1816,6 +1879,19 @@ void postgarbo() {
     print("UnderTheSeaPrep checkpoint complete. Ready for the pre-Valhalla stop.", "green");
 }
 
+void finishplain() {
+    collect_safe_rumpus_adventures();
+    preascension_acquisitions();
+    mount_codpiece_pearls();
+    collect_remaining_breakfast_resources();
+    use_remaining_chroner_items();
+    spend_mr_store_2002_credits();
+    craft_preascension_cookbookbat_foods();
+    burn_remaining_turns_without_organ_lock();
+    prep_and_run_pvp();
+    print("UnderTheSeaPrep non-organ checkpoint complete. Ready for the pre-Valhalla stop.", "green");
+}
+
 void pearls() {
     require_preflight_items();
     equip_organ_lock(true);
@@ -1824,8 +1900,9 @@ void pearls() {
 }
 
 void help() {
-    print("Usage: UnderTheSeaPrep status | preflight | postgarbo | pearls | mount", "teal");
+    print("Usage: UnderTheSeaPrep status | preflight | postgarbo | finishplain | pearls | mount", "teal");
     print("postgarbo starts after the first garbo ascend and stops before Valhalla.");
+    print("finishplain skips Wineglass/organ-lock farming and finishes with held or purchased pearls.");
 }
 
 void main(string input) {
@@ -1839,6 +1916,10 @@ void main(string input) {
             return;
         case "postgarbo":
             postgarbo();
+            return;
+        case "finishplain":
+        case "finish plain":
+            finishplain();
             return;
         case "pearls":
             pearls();
