@@ -2217,11 +2217,13 @@ void require_ascension_enabled(string command_name) {
     }
 }
 
-void resolve_undersea_council_choice() {
-    if (!handling_choice()) return;
+boolean resolve_undersea_council_choice() {
+    if (!handling_choice()) return true;
     if (last_choice() != 1565) {
-        abort("Unexpected choice " + last_choice()
-            + " while collecting the UnderTheSea Toot package.");
+        print("Found active choice " + last_choice()
+            + " while checking the UnderTheSea Toot package; leaving it for UnderTheSea re-entry.",
+            "yellow");
+        return false;
     }
 
     print("Acknowledging the UnderTheSea Council message.", "teal");
@@ -2229,6 +2231,7 @@ void resolve_undersea_council_choice() {
     if (handling_choice()) {
         abort("UnderTheSea Council choice 1565 did not resolve.");
     }
+    return true;
 }
 
 void protect_porquoise_before_undersea() {
@@ -2250,16 +2253,16 @@ void protect_porquoise_before_undersea() {
         return;
     }
 
-    resolve_undersea_council_choice();
+    if (!resolve_undersea_council_choice()) return;
 
     if (in_undersea_path() && get_property("questM05Toot") == "started") {
         print("Collecting the Toot Oriole package before UnderTheSea can autosell its porquoise.", "teal");
         visit_url("council.php");
-        resolve_undersea_council_choice();
+        if (!resolve_undersea_council_choice()) return;
         visit_url("tutorial.php?action=toot");
-        resolve_undersea_council_choice();
+        if (!resolve_undersea_council_choice()) return;
         visit_url("council.php");
-        resolve_undersea_council_choice();
+        if (!resolve_undersea_council_choice()) return;
     }
 
     if (item_amount(KING_RALPH_LETTER) > 0) {
