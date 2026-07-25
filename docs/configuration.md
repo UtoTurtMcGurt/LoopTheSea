@@ -65,6 +65,11 @@ loopTheSea_permMinimumBankedKarma
 loopTheSea_stopAfterAscension
 ```
 
+The relay preference page shows the numeric moon sign IDs with their KoL names
+and benefit summaries. `loopTheSea_astralDeli` buys one Astral Deli item per
+Valhalla visit. `loopTheSea_astralPet` is the historical preference name for the
+single Astral Pet Store / armory item bought with `buyarmory`.
+
 Run:
 
 ```text

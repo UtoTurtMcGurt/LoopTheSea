@@ -53,8 +53,60 @@ void write_header() {
     writeln(".summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:12px 0 18px;}");
     writeln(".pill{background:#fff;border:1px solid #d3c9bb;border-radius:6px;padding:8px;}");
     writeln(".pill b{display:block;font-size:12px;color:#6f6257;text-transform:uppercase;letter-spacing:.04em;}");
+    writeln(".detail-card{margin-top:8px;background:#f8f4ea;border:1px solid #ddd1bf;border-radius:6px;padding:8px;color:#3b352f;line-height:1.3;}");
+    writeln(".detail-card b{display:block;color:#2f5d7c;margin-bottom:3px;}");
+    writeln(".detail-card span{display:block;font-size:12px;color:#5f554d;}");
     writeln("code{background:#eee5d9;padding:1px 4px;border-radius:3px;}");
-    writeln("</style></head><body><main>");
+    writeln("</style>");
+    writeln("<script>");
+    writeln("var loopTheSeaMoonSigns={");
+    writeln("'1':{title:'1 - The Mongoose',body:'Unlocks Degrassi Knoll. +10% Muscle gains; +20% Physical Damage.'},");
+    writeln("'2':{title:'2 - The Wallaby',body:'Unlocks Degrassi Knoll. +10% Mysticality gains; +20% Spell Damage.'},");
+    writeln("'3':{title:'3 - The Vole',body:'Unlocks Degrassi Knoll. +10% Moxie gains; +20% Combat Initiative; +20 Maximum HP/MP.'},");
+    writeln("'4':{title:'4 - The Platypus',body:'Unlocks Little Canadia. +10% Muscle gains; Familiar Weight +5 lbs.'},");
+    writeln("'5':{title:'5 - The Opossum',body:'Unlocks Little Canadia. +10% Mysticality gains; +5 Adventures per day from Food.'},");
+    writeln("'6':{title:'6 - The Marmot',body:'Unlocks Little Canadia. +10% Moxie gains; one free ten-leaf clover per day.'},");
+    writeln("'7':{title:'7 - The Wombat',body:'Unlocks the Gnomish Gnomad Camp. +10% Muscle gains; +20% Meat from Monsters.'},");
+    writeln("'8':{title:'8 - The Blender',body:'Unlocks the Gnomish Gnomad Camp. +10% Mysticality gains; +5 Adventures per day from Booze.'},");
+    writeln("'9':{title:'9 - The Packrat',body:'Unlocks the Gnomish Gnomad Camp. +10% Moxie gains; +10% Items from Monsters.'}");
+    writeln("};");
+    writeln("var loopTheSeaAstralDeli={");
+    writeln("'none':{title:'none',body:'Skip the Astral Deli purchase for this Valhalla visit.'},");
+    writeln("'astral hot dog dinner':{title:'astral hot dog dinner',body:'Food package from the Astral Deli. Useful when you want astral hot dogs next run.'},");
+    writeln("'astral six-pack':{title:'astral six-pack',body:'Booze package from the Astral Deli. This is the current LoopTheSea default.'},");
+    writeln("'carton of astral energy drinks':{title:'carton of astral energy drinks',body:'Spleen package from the Astral Deli. Pick this when you want astral energy drinks.'},");
+    writeln("'astral energy drink':{title:'astral energy drink',body:'Legacy individual item name. Prefer the carton option if buying from Valhalla.'}");
+    writeln("};");
+    writeln("var loopTheSeaAstralArmory={");
+    writeln("'none':{title:'none',body:'Skip the Astral Pet Store / armory purchase for this Valhalla visit.'},");
+    writeln("'astral bludgeon':{title:'astral bludgeon',body:'Astral weapon option.'},");
+    writeln("'astral shield':{title:'astral shield',body:'Astral off-hand option.'},");
+    writeln("'astral chapeau':{title:'astral chapeau',body:'Astral hat option.'},");
+    writeln("'astral bracer':{title:'astral bracer',body:'Astral accessory option.'},");
+    writeln("'astral longbow':{title:'astral longbow',body:'Astral ranged weapon option.'},");
+    writeln("'astral shorts':{title:'astral shorts',body:'Astral pants option.'},");
+    writeln("'astral mace':{title:'astral mace',body:'Astral weapon option.'},");
+    writeln("'astral trousers':{title:'astral trousers',body:'Astral pants option.'},");
+    writeln("'astral ring':{title:'astral ring',body:'Astral accessory option.'},");
+    writeln("'astral statuette':{title:'astral statuette',body:'Astral familiar-equipment option.'},");
+    writeln("'astral pistol':{title:'astral pistol',body:'Astral ranged weapon option.'},");
+    writeln("'astral mask':{title:'astral mask',body:'Astral hat option.'},");
+    writeln("'astral pet sweater':{title:'astral pet sweater',body:'Astral familiar-equipment option.'},");
+    writeln("'astral shirt':{title:'astral shirt',body:'Astral shirt option.'},");
+    writeln("'astral belt':{title:'astral belt',body:'Astral accessory option.'}");
+    writeln("};");
+    writeln("function loopTheSeaSetDetail(targetId,lookup,value,emptyTitle,emptyBody){");
+    writeln("var target=document.getElementById(targetId); if(!target) return;");
+    writeln("var data=lookup[value]; target.textContent='';");
+    writeln("var title=document.createElement('b'); title.appendChild(document.createTextNode(data?data.title:emptyTitle)); target.appendChild(title);");
+    writeln("var body=document.createElement('span'); body.appendChild(document.createTextNode(data?data.body:emptyBody)); target.appendChild(body);");
+    writeln("}");
+    writeln("function loopTheSeaUpdateMoonSign(value){loopTheSeaSetDetail('loopTheSeaMoonSignDetail',loopTheSeaMoonSigns,value,'No moon sign selected','Set a moon sign before automated ascension.');}");
+    writeln("function loopTheSeaUpdateAstralDeli(value){loopTheSeaSetDetail('loopTheSeaAstralDeliDetail',loopTheSeaAstralDeli,value,'No Astral Deli choice selected','Use none to skip the Valhalla deli purchase.');}");
+    writeln("function loopTheSeaUpdateAstralArmory(value){loopTheSeaSetDetail('loopTheSeaAstralArmoryDetail',loopTheSeaAstralArmory,value,'No Astral Pet Store choice selected','Use none to skip the Valhalla armory purchase.');}");
+    writeln("function loopTheSeaWireDetail(selectId,handler){var select=document.getElementById(selectId); if(!select) return; handler(select.value); select.addEventListener('change',function(){handler(this.value);});}");
+    writeln("window.addEventListener('DOMContentLoaded',function(){loopTheSeaWireDetail('loopTheSea_moonId',loopTheSeaUpdateMoonSign);loopTheSeaWireDetail('loopTheSea_astralDeli',loopTheSeaUpdateAstralDeli);loopTheSeaWireDetail('loopTheSea_astralPet',loopTheSeaUpdateAstralArmory);});");
+    writeln("</script></head><body><main>");
 }
 
 void write_footer() {
@@ -123,6 +175,57 @@ void write_select(string property_name, string label, string help, string option
     }
     writeln("</select>");
     row_end();
+}
+
+void write_select_with_detail(string property_name, string label, string help, string option_spec, string detail_id) {
+    row_start(property_name, label, help);
+    string current = get_property(property_name);
+    writeln("<div>");
+    writeln("<select id='" + html(property_name) + "' name='" + html(property_name) + "'>");
+    foreach i, raw in option_spec.split_string("\\|") {
+        string value = raw;
+        string option_label = raw;
+        int separator = raw.index_of("=");
+        if (separator >= 0) {
+            value = raw.substring(0, separator);
+            option_label = raw.substring(separator + 1);
+        }
+        write_option(current, value, option_label);
+    }
+    writeln("</select>");
+    writeln("<div id='" + html(detail_id) + "' class='detail-card'></div>");
+    writeln("</div>");
+    row_end();
+}
+
+void write_moon_sign_select() {
+    write_select_with_detail(
+        LOOP_PREF + "moonId",
+        "Moon sign",
+        "Automated ascension passes this numeric sign ID to KoL.",
+        "=(unset)|1=1 - The Mongoose|2=2 - The Wallaby|3=3 - The Vole|4=4 - The Platypus|5=5 - The Opossum|6=6 - The Marmot|7=7 - The Wombat|8=8 - The Blender|9=9 - The Packrat",
+        "loopTheSeaMoonSignDetail"
+    );
+}
+
+void write_astral_deli_select() {
+    write_select_with_detail(
+        LOOP_PREF + "astralDeli",
+        "Astral deli",
+        "One deli item can be bought per Valhalla visit.",
+        "=(unset)|none|astral hot dog dinner|astral six-pack|carton of astral energy drinks|astral energy drink=astral energy drink (legacy)",
+        "loopTheSeaAstralDeliDetail"
+    );
+}
+
+void write_astral_armory_select() {
+    write_select_with_detail(
+        LOOP_PREF + "astralPet",
+        "Astral pet / armory",
+        "One Astral Pet Store / armory item can be bought per Valhalla visit.",
+        "=(unset)|none|astral bludgeon|astral shield|astral chapeau|astral bracer|astral longbow|astral shorts|astral mace|astral trousers|astral ring|astral statuette|astral pistol|astral mask|astral pet sweater|astral shirt|astral belt",
+        "loopTheSeaAstralArmoryDetail"
+    );
 }
 
 void save_all(string [string] fields) {
@@ -257,10 +360,10 @@ void write_ascension_section() {
     write_select(LOOP_PREF + "ascensionType", "Ascension type", "2 is normal. Review before changing.", "1=Hardcore|2=Normal");
     write_number(LOOP_PREF + "pathId", "Path ID", "11,037 Leagues Under the Sea is 55.");
     write_select(LOOP_PREF + "className", "Class", "Leave unset for manual/staged testing.", "=(unset)|Seal Clubber|Turtle Tamer|Pastamancer|Sauceror|Disco Bandit|Accordion Thief");
-    write_select(LOOP_PREF + "moonId", "Moon sign", "Platypus is 4.", "=(unset)|1|2|3|4|5|6|7|8|9");
+    write_moon_sign_select();
     write_select(LOOP_PREF + "gender", "Gender", "KoL afterlife numeric gender selection.", "=(unset)|1|2");
-    write_select(LOOP_PREF + "astralDeli", "Astral deli", "One item can be bought per Valhalla visit.", "=(unset)|none|astral six-pack|astral hot dog dinner|astral energy drink");
-    write_select(LOOP_PREF + "astralPet", "Astral pet", "Usually none for this loop.", "=(unset)|none");
+    write_astral_deli_select();
+    write_astral_armory_select();
     write_select(LOOP_PREF + "permSkills", "Perm skills", "ALL_HC tries offered Hardcore perms while respecting the Karma floor.", "NONE|ALL_HC|ALL_SOFTCORE");
     write_number(LOOP_PREF + "permMinimumBankedKarma", "Minimum banked Karma", "Perming stops before going below this amount.");
     write_bool(LOOP_PREF + "stopAfterAscension", "Stop after ascension", "Keep this on while testing the Valhalla crossing.");
