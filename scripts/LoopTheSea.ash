@@ -192,6 +192,9 @@ void initialize_defaults() {
     set_default("runInitialGarbo", "false");
     set_default("initialGarboCommand", "garbo ascend");
     set_default("preserveInitialGarboFishy", "true");
+    set_default("initialGarboRecoverDigitizeMismatch", "true");
+    set_default("initialGarboRecoveryRetries", "2");
+    set_default("garboRecoveryCombatMacro", "attack; repeat");
     set_default("allowPartialInitialGarboRetry", "false");
     set_default("requireInitialGarboCompleted", "true");
     set_default("ascendEnabled", "false");
@@ -257,6 +260,8 @@ void initialize_defaults() {
     set_default("leg2HoboMonkeyMoxieFloor", "600");
     set_default("leg2GarboAfterPearls", "true");
     set_default("leg2GarboCommand", "garbo");
+    set_default("leg2GarboRecoverDigitizeMismatch", "true");
+    set_default("leg2GarboRecoveryRetries", "2");
     if (get_property(PREF + "leg2GarboCommand") == "garbo ascend") {
         set_property(PREF + "leg2GarboCommand", "garbo");
     }
@@ -385,6 +390,64 @@ void prepare_loop_state() {
 void run_cli(string command) {
     print("Running: " + command, "teal");
     if (!cli_execute(command)) abort("Command failed: " + command);
+}
+
+boolean garbo_digitize_mismatch_failure() {
+    string error = get_property("lastMacroError").to_lower_case();
+    return error.contains_text("expected a digitized witchess")
+        || error.contains_text("expected witchess")
+        || error.contains_text("digitized witchess");
+}
+
+boolean recover_garbo_digitize_mismatch(string phase) {
+    if (handling_choice()) {
+        print(phase + " Garbo failed while a choice is open; not treating this as a recoverable digitize mismatch.",
+            "red");
+        return false;
+    }
+
+    string macro = pref_string("garboRecoveryCombatMacro", "attack; repeat");
+    print("Recovering from " + phase
+        + " Garbo digitize mismatch by finishing the current fight with: "
+        + macro, "orange");
+    run_combat(macro);
+
+    if (handling_choice()) {
+        print(phase + " Garbo recovery finished combat but left choice "
+            + last_choice() + " open.", "red");
+        return false;
+    }
+
+    if (!cli_execute("refresh all")) {
+        print("refresh all failed after " + phase
+            + " Garbo recovery; retrying Garbo with current Mafia state.",
+            "yellow");
+    }
+    return true;
+}
+
+boolean run_garbo_with_digitize_recovery(string phase, string command,
+    boolean recovery_enabled, int max_recoveries) {
+    int recoveries = 0;
+    int limit = max(0, max_recoveries);
+
+    while (true) {
+        print("Running " + phase + " Garbo: " + command, "teal");
+        set_property("lastMacroError", "");
+        if (cli_execute(command)) return true;
+
+        if (!recovery_enabled || !garbo_digitize_mismatch_failure()) return false;
+        if (recoveries >= limit) {
+            print(phase + " Garbo hit recoverable digitize mismatch more than "
+                + limit + " time(s).", "red");
+            return false;
+        }
+
+        recoveries = recoveries + 1;
+        if (!recover_garbo_digitize_mismatch(phase)) return false;
+        print("Retrying " + phase + " Garbo after digitize recovery ("
+            + recoveries + "/" + limit + ").", "orange");
+    }
 }
 
 string profit_marker_name(string marker) {
@@ -1209,7 +1272,9 @@ void status() {
         + "; rollover=" + get_property(INTERNAL + "leg1RolloverDone"));
     print("Configured initial Garbo: run=" + pref_bool("runInitialGarbo", false)
         + "; command=\"" + pref_string("initialGarboCommand", "garbo ascend") + "\""
-        + "; preserve Fishy pipe/Lutz=" + pref_bool("preserveInitialGarboFishy", true));
+        + "; preserve Fishy pipe/Lutz=" + pref_bool("preserveInitialGarboFishy", true)
+        + "; digitize recovery=" + pref_bool("initialGarboRecoverDigitizeMismatch", true)
+        + " x" + pref_int("initialGarboRecoveryRetries", 2));
     print("Leg1 pearl routing: policy=" + pref_string("leg1PearlPolicy", "VALUE")
         + "; farmRoute=" + pref_string("leg1PearlFarmRoute", "AUTO")
         + "; allowOrganLock=" + pref_bool("allowOrganLockPearlFarming", false)
@@ -1257,7 +1322,9 @@ void status() {
     print("Leg2 cozy bazooka: " + cozy_bazooka_status());
     print("Leg2 Garbo: run=" + pref_bool("leg2GarboAfterPearls", true)
         + "; command=\"" + pref_string("leg2GarboCommand", "garbo") + "\""
-        + "; require spent=" + pref_bool("leg2RequireGarboSpendAllTurns", true));
+        + "; require spent=" + pref_bool("leg2RequireGarboSpendAllTurns", true)
+        + "; digitize recovery=" + pref_bool("leg2GarboRecoverDigitizeMismatch", true)
+        + " x" + pref_int("leg2GarboRecoveryRetries", 2));
     print("Leg2 Donho: use=" + pref_bool("leg2UseDonho", true)
         + "; item fallback=" + pref_bool("leg2AllowDonhoItemFallback", false));
     print("Leg2 pressure upkeep: consumables=" + pref_bool("leg2UsePressureConsumables", true)
@@ -1953,7 +2020,12 @@ void maybe_run_initial_garbo() {
 
     boolean pipe_restored = true;
     try {
-        run_cli(pref_string("initialGarboCommand", "garbo ascend"));
+        string command = pref_string("initialGarboCommand", "garbo ascend");
+        if (!run_garbo_with_digitize_recovery("initial", command,
+            pref_bool("initialGarboRecoverDigitizeMismatch", true),
+            pref_int("initialGarboRecoveryRetries", 2))) {
+            abort("Command failed: " + command);
+        }
     } finally {
         if (preserve_fishy) {
             set_property("_skateBuff1", previous_lutz_used);
@@ -3897,7 +3969,12 @@ void run_leg2_garbo() {
 
     profit_marker("leg2_garbo_start");
     recover_for_leg2_garbo();
-    run_cli(pref_string("leg2GarboCommand", "garbo"));
+    string command = pref_string("leg2GarboCommand", "garbo");
+    if (!run_garbo_with_digitize_recovery("Leg2", command,
+        pref_bool("leg2GarboRecoverDigitizeMismatch", true),
+        pref_int("leg2GarboRecoveryRetries", 2))) {
+        abort("Command failed: " + command);
+    }
     if (pref_bool("leg2RequireGarboSpendAllTurns", true) && my_adventures() > 0) {
         abort("Leg2 Garbo left " + my_adventures()
             + " adventures. Rollover automation requires plain Garbo to finish all profitable turns.");
