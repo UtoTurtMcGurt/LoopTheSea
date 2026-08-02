@@ -1124,28 +1124,6 @@ boolean need_to_acquire(item it) {
     return available_amount(it) + closet_amount(it) + storage_amount(it) == 0;
 }
 
-void prepare_legendary_pizzas() {
-    boolean need_calzone = need_to_acquire($item[calzone of legend]);
-    boolean need_deep_dish = need_to_acquire($item[deep dish of legend]);
-    boolean need_pizza = need_to_acquire($item[pizza of legend]);
-    if (!need_calzone && !need_deep_dish && !need_pizza) return;
-
-    int pizza_price = 2 * mall_price($item[Yeast of Boris])
-        + 2 * mall_price($item[Vegetable of Jarlsberg])
-        + 2 * mall_price($item[St. Sneaky Pete's Whey]);
-
-    if (pizza_price < 50 * voa()) {
-        if (need_calzone) run_cli("make calzone of legend");
-        if (need_deep_dish) run_cli("make deep dish of legend");
-        if (need_pizza) run_cli("make pizza of legend");
-        return;
-    }
-
-    if (need_calzone || need_deep_dish || need_pizza) {
-        abort("Legendary pizza ingredients are outside the safe price range. Acquire the three pizzas manually.");
-    }
-}
-
 void acquire_if_needed(item it) {
     if (need_to_acquire(it)) run_cli("acquire 1 " + it);
 }
@@ -1182,37 +1160,6 @@ void run_custom_acquisition_list(string value, boolean from_stash) {
 }
 
 void preascension_acquisitions() {
-    int ascension_type = pref_int("nextAscensionType", 2);
-    int path_id = pref_int("nextPathId", 0);
-
-    if (ascension_type < 3) {
-        prepare_legendary_pizzas();
-        if (!have_skill($skill[Summon Clip Art])) acquire_if_needed($item[borrowed time]);
-        acquire_if_needed($item[non-Euclidean angle]);
-        acquire_if_needed($item[abstraction: category]);
-        acquire_if_needed($item[tobiko marble soda]);
-        acquire_if_needed($item[wasabi marble soda]);
-        if (!get_property("stenchAirportAlways").to_boolean()) {
-            acquire_if_needed($item[one-day ticket to Dinseylandfill]);
-        }
-    }
-
-    if (path_id == 49) {
-        prepare_legendary_pizzas();
-        if (!pref_bool("smolNoSaladFork", false)) {
-            if (!retrieve_item(1, $item[Ol' Scratch's salad fork])) {
-                abort("Failed to acquire Ol' Scratch's salad fork. Set "
-                    + PREF + "smolNoSaladFork=true to skip.");
-            }
-        }
-        if (!pref_bool("smolNoFrostyMug", false)) {
-            if (!retrieve_item(1, $item[Frosty's frosty mug])) {
-                abort("Failed to acquire Frosty's frosty mug. Set "
-                    + PREF + "smolNoFrostyMug=true to skip.");
-            }
-        }
-    }
-
     run_custom_acquisition_list(pref_string("preAscendAcquireList", ""), false);
     run_custom_acquisition_list(pref_string("preAscendClanStashAcquireList", ""), true);
 }

@@ -352,6 +352,7 @@ void reset_checkpoints_for_new_day() {
     set_property(INTERNAL + "leg2RolloverHookDone", "false");
     set_property(INTERNAL + "leg2RolloverDone", "false");
     set_property(INTERNAL + "leg2BofaFishyAttempts", "0");
+    set_property(INTERNAL + "leg2DonhoSkipped", "false");
     set_property(INTERNAL + "leg2PearlBudgetFloor", "0");
     set_property(INTERNAL + "leg1RolloverHookDone", "false");
     set_property(INTERNAL + "leg1RolloverDone", "false");
@@ -381,6 +382,9 @@ void prepare_loop_state() {
     }
     if (get_property(INTERNAL + "leg2BofaFishyAttempts") == "") {
         set_property(INTERNAL + "leg2BofaFishyAttempts", "0");
+    }
+    if (get_property(INTERNAL + "leg2DonhoSkipped") == "") {
+        set_property(INTERNAL + "leg2DonhoSkipped", "false");
     }
     if (get_property(INTERNAL + "leg2PearlBudgetFloor") == "") {
         set_property(INTERNAL + "leg2PearlBudgetFloor", "0");
@@ -434,7 +438,21 @@ boolean run_garbo_with_digitize_recovery(string phase, string command,
     while (true) {
         print("Running " + phase + " Garbo: " + command, "teal");
         set_property("lastMacroError", "");
-        if (cli_execute(command)) return true;
+        boolean ok = recovery_enabled
+            ? cli_execute("try; " + command)
+            : cli_execute(command);
+        if (ok && !garbo_digitize_mismatch_failure()) {
+            string completed = get_property("_garboCompleted").to_lower_case();
+            boolean initial_checkpoint = get_property(INTERNAL + "initialGarboDone").to_boolean()
+                || (completed.contains_text("garbo") && completed.contains_text("ascend"));
+            if (phase.to_lower_case() == "initial"
+                && !initial_checkpoint) {
+                print("Initial Garbo returned without setting the external _garboCompleted checkpoint.",
+                    "red");
+                return false;
+            }
+            return true;
+        }
 
         if (!recovery_enabled || !garbo_digitize_mismatch_failure()) return false;
         if (recoveries >= limit) {
@@ -1170,7 +1188,8 @@ void print_postrun_pearl_report() {
     print("Reserve Garbo-limited buffs: " + pref_bool("leg2ReserveLimitedBuffsForGarbo", true)
         + "; generic +Meat buffs for Leg2 pearls: " + pref_bool("leg2UseGenericMeatBuffs", false));
     print("Leg2 Donho: use=" + pref_bool("leg2UseDonho", true)
-        + "; item fallback=" + pref_bool("leg2AllowDonhoItemFallback", false));
+        + "; held item fallback=" + pref_bool("leg2AllowDonhoItemFallback", false)
+        + "; mall purchase=false");
     print("Leg2 pressure upkeep: consumables=" + pref_bool("leg2UsePressureConsumables", true)
         + "; fastjuice cap=" + pref_int("leg2FastjuiceMaxPrice", 5000)
         + "; sea salt cap=" + pref_int("leg2SeaSaltCrystalMaxPrice", 5000)
@@ -1326,7 +1345,8 @@ void status() {
         + "; digitize recovery=" + pref_bool("leg2GarboRecoverDigitizeMismatch", true)
         + " x" + pref_int("leg2GarboRecoveryRetries", 2));
     print("Leg2 Donho: use=" + pref_bool("leg2UseDonho", true)
-        + "; item fallback=" + pref_bool("leg2AllowDonhoItemFallback", false));
+        + "; held item fallback=" + pref_bool("leg2AllowDonhoItemFallback", false)
+        + "; mall purchase=false");
     print("Leg2 pressure upkeep: consumables=" + pref_bool("leg2UsePressureConsumables", true)
         + "; fastjuice cap=" + pref_int("leg2FastjuiceMaxPrice", 5000)
         + "; sea salt cap=" + pref_int("leg2SeaSaltCrystalMaxPrice", 5000)
@@ -2429,6 +2449,7 @@ void mark_ascension_complete() {
     set_property(INTERNAL + "leg2RolloverHookDone", "false");
     set_property(INTERNAL + "leg2RolloverDone", "false");
     set_property(INTERNAL + "leg2BofaFishyAttempts", "0");
+    set_property(INTERNAL + "leg2DonhoSkipped", "false");
     set_property(INTERNAL + "leg2PearlBudgetFloor", "0");
     set_property(INTERNAL + "leg1RolloverHookDone", "false");
     set_property(INTERNAL + "leg1RolloverDone", "false");
@@ -3281,15 +3302,29 @@ void maybe_install_saltwaterbed() {
 void ensure_leg2_donho() {
     if (!pref_bool("leg2UseDonho", true)) return;
     if (have_effect($effect[Donho's Bubbly Ballad]) > 0) return;
+    boolean fallback_allowed = pref_bool("leg2AllowDonhoItemFallback", false);
+    boolean held_fallback_available = item_amount(DONHO_RECORDING) > 0
+        || closet_amount(DONHO_RECORDING) > 0
+        || item_amount(DONHO_SINGLE) > 0
+        || closet_amount(DONHO_SINGLE) > 0;
+    if (get_property(INTERNAL + "leg2DonhoSkipped").to_boolean()
+        && (!fallback_allowed || !held_fallback_available)) return;
 
-    print("Casting Donho's Bubbly Ballad for Leg2 pearl farming.", "teal");
-    cli_execute("cast Donho's Bubbly Ballad");
-    if (have_effect($effect[Donho's Bubbly Ballad]) > 0) return;
+    skill donho = $skill[Donho's Bubbly Ballad];
+    if (have_skill(donho)) {
+        print("Casting Donho's Bubbly Ballad for Leg2 pearl farming.", "teal");
+        use_skill(1, donho);
+        if (have_effect($effect[Donho's Bubbly Ballad]) > 0) return;
+        print("Donho's Bubbly Ballad is known, but casting did not apply the effect.", "yellow");
+    } else {
+        print("Donho's Bubbly Ballad is not known; continuing without the Donho pressure bonus.", "yellow");
+    }
 
-    if (!pref_bool("leg2AllowDonhoItemFallback", false)) {
-        abort("Casting Donho's Bubbly Ballad did not apply it. "
-            + "Check MP, skill availability, and the active AT song cap. Item fallback is disabled by "
-            + PREF + "leg2AllowDonhoItemFallback=false.");
+    if (!fallback_allowed) {
+        print("Skipping Donho held-item fallback because "
+            + PREF + "leg2AllowDonhoItemFallback=false.", "yellow");
+        set_property(INTERNAL + "leg2DonhoSkipped", "true");
+        return;
     }
 
     if (item_amount(DONHO_RECORDING) > 0 || closet_amount(DONHO_RECORDING) > 0) {
@@ -3304,8 +3339,8 @@ void ensure_leg2_donho() {
         return;
     }
 
-    ensure_effect_from_item($effect[Donho's Bubbly Ballad], DONHO_SINGLE, 1,
-        pref_int("leg2DonhoRecordingMaxPrice", 50000), "Leg2 Donho");
+    print("No held or closeted Donho item is available; not buying one for Leg2 pearl farming.", "yellow");
+    set_property(INTERNAL + "leg2DonhoSkipped", "true");
 }
 
 void ensure_leg2_pressure_effects() {
@@ -3947,6 +3982,11 @@ void farm_leg2_pearls() {
         set_property("battleAction", previous_battle_action);
     }
 
+    int remaining = projected_leg2_pearl_combats();
+    if (remaining > 0) {
+        abort("Leg2 pearl farming ended with " + remaining
+            + " projected pearl combat(s) remaining; not logging the done marker.");
+    }
     profit_marker("leg2_pearls_done");
 }
 
