@@ -301,6 +301,7 @@ void save_all(string [string] fields) {
     save_bool(fields, LOOP_PREF + "leg2RequireGarboSpendAllTurns");
     save_bool(fields, LOOP_PREF + "leg2RunBreakfastSweep");
     save_bool(fields, LOOP_PREF + "leg2RunLateDailySweep");
+    save_bool(fields, LOOP_PREF + "allowOverdrunkRollover");
     save_bool(fields, LOOP_PREF + "leg2RunFinalNightcap");
     save_string(fields, LOOP_PREF + "leg2FinalNightcapCommand");
     save_bool(fields, LOOP_PREF + "leg2RunExpandedOrgansRollover");
@@ -328,6 +329,9 @@ void apply_alpha_defaults() {
     set_property(LOOP_PREF + "leg2RunAfterUnderSea", "false");
     set_property(LOOP_PREF + "leg2PearlMode", "REPORT");
     set_property(LOOP_PREF + "leg2InstallSaltwaterbed", "false");
+    set_property(LOOP_PREF + "allowOverdrunkRollover", "false");
+    set_property(LOOP_PREF + "leg2RunFinalNightcap", "false");
+    set_property(LOOP_PREF + "leg2RunExpandedOrgansRollover", "false");
     set_property(LOOP_PREF + "leg2UseWetDatesRollover", "false");
     set_property(LOOP_PREF + "profitTrackingRequired", "false");
     set_property(LOOP_PREF + "protectPorquoiseBeforeUnderSea", "true");
@@ -374,7 +378,7 @@ void write_leg1_section() {
     writeln("<fieldset><legend>Leg1 Pearls and UnderTheSeaPrep</legend>");
     write_select(LOOP_PREF + "leg1PearlPolicy", "LoopTheSea pearl policy", "Public-facing Leg1 pearl acquisition policy for the route refactor.", "VALUE|ALWAYS_FARM|BUY_MISSING|HELD_ONLY|SKIP");
     write_select(LOOP_PREF + "leg1PearlFarmRoute", "LoopTheSea farm route", "AUTO keeps public defaults conservative; ORGAN_LOCK opts into the advanced Wineglass route.", "AUTO|ORGAN_LOCK|RESERVED_TURNS|MANUAL_CHECKPOINT");
-    write_bool(LOOP_PREF + "allowOrganLockPearlFarming", "Allow organ-lock farming", "Opt-in gate for the Drunkula's wineglass overdrunk/expanded-organ route.");
+    write_bool(LOOP_PREF + "allowOrganLockPearlFarming", "Allow Leg1 organ-lock farming", "Leg1-only opt-in gate for the Drunkula's wineglass overdrunk/expanded-organ pearl route.");
     write_number(LOOP_PREF + "leg1PearlBuyMaxPrice", "Leg1 pearl buy max", "Maximum per-pearl mall price for buy-missing/value routing.");
     write_bool(LOOP_PREF + "leg1PearlManualCheckpoint", "Allow manual pearl checkpoint", "Stop clearly before ascension when automatic pearl acquisition is blocked.");
     write_bool(LOOP_PREF + "showPearlRouteAdvice", "Show route advice", "Display sim/preflight recommendations when advanced organ-lock gear is detected.");
@@ -431,9 +435,10 @@ void write_leg2_finish_section() {
     write_bool(LOOP_PREF + "leg2RequireGarboSpendAllTurns", "Require Garbo spend-all", "Abort if Leg2 Garbo leaves turns unexpectedly.");
     write_bool(LOOP_PREF + "leg2RunBreakfastSweep", "Run Leg2 breakfast sweep", "Runs configured breakfast sweep before later Leg2 work.");
     write_bool(LOOP_PREF + "leg2RunLateDailySweep", "Run late daily sweep", "Collect remaining daily resources before final rollover consume.");
-    write_bool(LOOP_PREF + "leg2RunFinalNightcap", "Run final nightcap", "Use configured nightcap command before rollover prep.");
+    write_bool(LOOP_PREF + "allowOverdrunkRollover", "Allow overdrunk rollover", "Master opt-in for Leg2 final nightcap and expanded-organ rollover consume.");
+    write_bool(LOOP_PREF + "leg2RunFinalNightcap", "Run final nightcap", "Overdrinks with the configured nightcap command. Requires Allow overdrunk rollover.");
     write_text(LOOP_PREF + "leg2FinalNightcapCommand", "Nightcap command", "Usually CONSUME NIGHTCAP.");
-    write_bool(LOOP_PREF + "leg2RunExpandedOrgansRollover", "Run expanded organs", "Use organ gear after nightcap for rollover turns.");
+    write_bool(LOOP_PREF + "leg2RunExpandedOrgansRollover", "Run expanded organs", "Use Drunkula/organ gear after nightcap for rollover turns. Requires Allow overdrunk rollover.");
     write_bool(LOOP_PREF + "leg2UseWetDatesRollover", "Use wet dates", "Eat pile of wet dates for tomorrow's rollover effect.");
     write_number(LOOP_PREF + "leg2WetDatesMaxPrice", "Wet dates max price", "Mall cap for pile of wet dates.");
     write_bool(LOOP_PREF + "leg2PrepareRollover", "Prepare rollover outfit", "Run rollover maximizer at the end.");

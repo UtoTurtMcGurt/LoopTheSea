@@ -42,6 +42,7 @@ loopTheSea_leg2PearlTargetCount
 loopTheSea_leg2PearlBuffer
 loopTheSea_leg2GarboAfterPearls
 loopTheSea_leg2GarboCommand
+loopTheSea_allowOverdrunkRollover
 loopTheSea_leg2RunFinalNightcap
 loopTheSea_leg2PrepareRollover
 loopTheSea_leg2UseWetDatesRollover
@@ -102,6 +103,21 @@ loopTheSea_leg1PearlPolicy = VALUE
 loopTheSea_leg1PearlFarmRoute = AUTO
 loopTheSea_allowOrganLockPearlFarming = false
 ```
+
+Leg2 overdrunk rollover is also opt-in. Public-safe defaults do not run the
+final nightcap or expanded-organ rollover branch:
+
+```text
+loopTheSea_allowOverdrunkRollover = false
+loopTheSea_leg2RunFinalNightcap = false
+loopTheSea_leg2RunExpandedOrgansRollover = false
+```
+
+Players who opt into Leg2 overdrunk rollover should enable
+`loopTheSea_allowOverdrunkRollover` and the desired rollover sub-steps. If
+expanded organs are enabled, LoopTheSea verifies the Drunkula/organ-lock gear
+before drinking the final nightcap so a missing item does not strand the
+character overdrunk.
 
 `LoopTheSea sim` and `LoopTheSea preflight` will advise players to opt into the
 advanced organ-lock route when Drunkula's wineglass, Stooper, the organ-lock

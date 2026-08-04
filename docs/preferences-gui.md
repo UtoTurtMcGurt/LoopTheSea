@@ -53,6 +53,7 @@ LoopTheSea preflight
 The page includes an `Apply Alpha-Safe Defaults` button. This is intended for
 new testers and staged runs. It disables automated ascension, disables automatic
 Leg2 continuation, switches Leg2 pearls to `REPORT`, and disables saltwaterbed
-installation.
+installation. It also disables Leg2 overdrunk rollover, final nightcap, and
+expanded-organ rollover consume.
 
 Experienced users can then opt into the more aggressive pieces one by one.

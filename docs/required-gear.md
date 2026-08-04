@@ -97,6 +97,20 @@ Also required in practice:
 - a Fishy source, via existing Fishy, `fishy pipe`, Lutz when available, or
   `cuppa Gill tea`
 
+## Advanced Leg2 Overdrunk Rollover
+
+These settings are opt-in and disabled by default for public testers:
+
+```text
+loopTheSea_allowOverdrunkRollover = true
+loopTheSea_leg2RunFinalNightcap = true
+loopTheSea_leg2RunExpandedOrgansRollover = true
+```
+
+The final nightcap alone can overdrink the character. If expanded-organ rollover
+is enabled, LoopTheSea checks for the Drunkula/organ-lock gear before drinking
+so it will not leave a player overdrunk and then abort on missing gear.
+
 ## Leg2 Pearl Pressure Gear
 
 For automated Leg2 pearl farming, LoopTheSea explicitly locks this pressure

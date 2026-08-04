@@ -274,9 +274,10 @@ void initialize_defaults() {
     set_default("leg2MrStore2002Reward", "Spooky VHS Tape");
     set_default("leg2LateDailyCommand", "");
     set_default("leg2LateDailyTurnBurnCommand", "garbo nodiet");
-    set_default("leg2RunFinalNightcap", "true");
+    set_default("allowOverdrunkRollover", "false");
+    set_default("leg2RunFinalNightcap", "false");
     set_default("leg2FinalNightcapCommand", "CONSUME NIGHTCAP");
-    set_default("leg2RunExpandedOrgansRollover", "true");
+    set_default("leg2RunExpandedOrgansRollover", "false");
     set_default("leg2KeepOrganGearForRollover", "false");
     set_default("leg2UseWetDatesRollover", "false");
     set_default("leg2WetDatesMaxPrice", "40000");
@@ -1377,9 +1378,10 @@ void status() {
         + "; cure beaten up=" + pref_bool("leg2PearlCureBeatenUp", true)
         + "; cure The Colors=" + pref_bool("leg2PearlCureTheColors", true)
         + "; cure cap=" + pref_int("leg2NegativeEffectCureMaxPrice", 5000));
-    print("Leg2 rollover: final nightcap=" + pref_bool("leg2RunFinalNightcap", true)
+    print("Leg2 rollover: final nightcap=" + pref_bool("leg2RunFinalNightcap", false)
+        + "; allow overdrunk=" + pref_bool("allowOverdrunkRollover", false)
         + "; nightcap command=\"" + pref_string("leg2FinalNightcapCommand", "CONSUME NIGHTCAP") + "\""
-        + "; expanded organs=" + pref_bool("leg2RunExpandedOrgansRollover", true)
+        + "; expanded organs=" + pref_bool("leg2RunExpandedOrgansRollover", false)
         + "; keep organ gear=" + pref_bool("leg2KeepOrganGearForRollover", false)
         + "; wet dates=" + pref_bool("leg2UseWetDatesRollover", false)
         + "@" + pref_int("leg2WetDatesMaxPrice", 40000)
@@ -4073,8 +4075,36 @@ string leg2_organ_lock_maximizer() {
         + "equip devilbone greaves, equip angelbone chopsticks";
 }
 
+boolean leg2_overdrunk_rollover_allowed() {
+    return pref_bool("allowOverdrunkRollover", false);
+}
+
+string append_missing_item(string current, item it) {
+    if (have_item_or_equipped(it)) return current;
+    if (current != "") current = current + ", ";
+    return current + it;
+}
+
+string leg2_organ_lock_missing_detail() {
+    string missing = "";
+    missing = append_missing_item(missing, ANGELBONE_TOTEM);
+    missing = append_missing_item(missing, WINEGLASS);
+    missing = append_missing_item(missing, DEVILBONE_CORSET);
+    missing = append_missing_item(missing, DEVILBONE_GREAVES);
+    missing = append_missing_item(missing, ANGELBONE_CHOPSTICKS);
+    return missing;
+}
+
+void require_leg2_organ_lock_available(string context) {
+    string missing = leg2_organ_lock_missing_detail();
+    if (missing == "") return;
+    abort(context + ": " + PREF + "leg2RunExpandedOrgansRollover=true requires "
+        + missing + " before the final nightcap. Disable "
+        + PREF + "leg2RunExpandedOrgansRollover or acquire the missing item(s).");
+}
+
 boolean leg2_expanded_organs_locked() {
-    return pref_bool("leg2RunExpandedOrgansRollover", true)
+    return pref_bool("leg2RunExpandedOrgansRollover", false)
         && pref_bool("leg2KeepOrganGearForRollover", false)
         && get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean();
 }
@@ -4145,7 +4175,13 @@ void run_leg2_expanded_organs_rollover() {
         if (leg2_expanded_organs_locked()) equip_leg2_organ_lock();
         return;
     }
-    if (!pref_bool("leg2RunExpandedOrgansRollover", true)) {
+    if (!leg2_overdrunk_rollover_allowed()) {
+        print("Skipping Leg2 expanded-organ rollover consume by "
+            + PREF + "allowOverdrunkRollover=false.", "yellow");
+        set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
+        return;
+    }
+    if (!pref_bool("leg2RunExpandedOrgansRollover", false)) {
         print("Skipping Leg2 expanded-organ rollover consume by "
             + PREF + "leg2RunExpandedOrgansRollover=false.", "yellow");
         set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
@@ -4197,10 +4233,19 @@ void run_leg2_final_nightcap() {
         print("Leg2 final nightcap is already complete.", "green");
         return;
     }
-    if (!pref_bool("leg2RunFinalNightcap", true)) {
+    if (!pref_bool("leg2RunFinalNightcap", false)) {
         print("Skipping Leg2 final nightcap by " + PREF + "leg2RunFinalNightcap=false.", "yellow");
         set_property(INTERNAL + "leg2NightcapDone", "true");
         return;
+    }
+    if (!leg2_overdrunk_rollover_allowed()) {
+        print("Skipping Leg2 final nightcap by "
+            + PREF + "allowOverdrunkRollover=false.", "yellow");
+        set_property(INTERNAL + "leg2NightcapDone", "true");
+        return;
+    }
+    if (pref_bool("leg2RunExpandedOrgansRollover", false)) {
+        require_leg2_organ_lock_available("Leg2 final nightcap preflight");
     }
     if (pref_bool("leg2RequireGarboSpendAllTurns", true) && my_adventures() > 0) {
         abort("Refusing the final nightcap while " + my_adventures()
@@ -4212,10 +4257,10 @@ void run_leg2_final_nightcap() {
         print("Maximizing +liver for the final Leg2 nightcap.", "teal");
         if (!maximize("+liver, -tie", false)) abort("Unable to maximize +liver for the Leg2 nightcap.");
         use_stooper_for_leg2_nightcap();
-        if (!pref_bool("leg2RunExpandedOrgansRollover", true)) eat_leg2_rollover_wet_dates();
+        if (!pref_bool("leg2RunExpandedOrgansRollover", false)) eat_leg2_rollover_wet_dates();
         run_cli(pref_string("leg2FinalNightcapCommand", "CONSUME NIGHTCAP"));
     } else {
-        if (!pref_bool("leg2RunExpandedOrgansRollover", true)) eat_leg2_rollover_wet_dates();
+        if (!pref_bool("leg2RunExpandedOrgansRollover", false)) eat_leg2_rollover_wet_dates();
         print("Character is already overdrunk; treating the final Leg2 nightcap as complete.", "yellow");
     }
     if (my_inebriety() <= inebriety_limit()) {
