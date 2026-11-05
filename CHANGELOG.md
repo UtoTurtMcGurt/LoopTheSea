@@ -10,3 +10,4 @@
 - Added Leg2 pearl combat CCS and Seal Clubber BOFA Fishy CCS.
 - Added documentation for dependencies, configuration, and recovery.
 - Hardened Leg2 Pantogram setup so consume/stat prep runs before pressure-gear probing and diagnostics explain stat-gated pressure gear.
+- Reordered Leg2 rollover so expanded organs are consumed before a guarded, attack-only overflow burn, while wet dates remain reserved until all profitable turns are spent.

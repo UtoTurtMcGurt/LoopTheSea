@@ -46,6 +46,7 @@ loopTheSea_allowOverdrunkRollover
 loopTheSea_leg2RunFinalNightcap
 loopTheSea_leg2PrepareRollover
 loopTheSea_leg2UseWetDatesRollover
+loopTheSea_leg2OverflowTurnBurnLocation
 ```
 
 ## Automated Ascension
@@ -118,6 +119,13 @@ Players who opt into Leg2 overdrunk rollover should enable
 expanded organs are enabled, LoopTheSea verifies the Drunkula/organ-lock gear
 before drinking the final nightcap so a missing item does not strand the
 character overdrunk.
+
+After the nightcap, LoopTheSea consumes the expanded stomach and spleen slots
+while reserving one fullness for wet dates. It then measures the final rollover
+outfit, restores and verifies the complete organ-lock set, and directly burns
+only the profitable overflow at `loopTheSea_leg2OverflowTurnBurnLocation`
+(default: `Barf Mountain`) with weapon attacks. Wet dates are eaten only after
+that burn, preventing their rollover effect from being consumed by an adventure.
 
 `LoopTheSea sim` and `LoopTheSea preflight` will advise players to opt into the
 advanced organ-lock route when Drunkula's wineglass, Stooper, the organ-lock

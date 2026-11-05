@@ -310,6 +310,7 @@ void save_all(string [string] fields) {
     save_bool(fields, LOOP_PREF + "leg2PrepareRollover");
     save_string(fields, LOOP_PREF + "leg2RolloverAdventureCap");
     save_string(fields, LOOP_PREF + "leg2RolloverMaximizer");
+    save_string(fields, LOOP_PREF + "leg2OverflowTurnBurnLocation");
 
     save_bool(fields, LOOP_PREF + "profitTrackingEnabled");
     save_bool(fields, LOOP_PREF + "profitTrackingRequired");
@@ -444,6 +445,7 @@ void write_leg2_finish_section() {
     write_bool(LOOP_PREF + "leg2PrepareRollover", "Prepare rollover outfit", "Run rollover maximizer at the end.");
     write_number(LOOP_PREF + "leg2RolloverAdventureCap", "Rollover cap", "Usually 200.");
     write_text(LOOP_PREF + "leg2RolloverMaximizer", "Rollover maximizer", "Usually adv, 0.001 pvp fights, -tie.");
+    write_text(LOOP_PREF + "leg2OverflowTurnBurnLocation", "Overflow burn location", "Direct attack-only turn burn while keeping Wineglass and expanded-organ gear equipped. Usually Barf Mountain.");
     writeln("</fieldset>");
 }
 

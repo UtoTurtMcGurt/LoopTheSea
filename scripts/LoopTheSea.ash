@@ -210,6 +210,7 @@ void initialize_defaults() {
     set_default("stopAfterAscension", "true");
     set_default("underTheSeaCommand", "UnderTheSea");
     set_default("underTheSeaAutoRecoverFishy", "true");
+    set_default("underTheSeaAutoRecoverChampion", "true");
     set_default("hagnkAllAfterUnderSea", "true");
     set_default("stopAfterLeg1", "true");
     set_default("leg2PearlMode", "FARM");
@@ -284,6 +285,7 @@ void initialize_defaults() {
     set_default("leg2PrepareRollover", "true");
     set_default("leg2RolloverAdventureCap", "200");
     set_default("leg2RolloverMaximizer", "adv, 0.001 pvp fights, -tie");
+    set_default("leg2OverflowTurnBurnLocation", "Barf Mountain");
     if (get_property(PREF + "leg2RolloverMaximizer") == "10 adv, 1 pvp fights, -tie") {
         set_property(PREF + "leg2RolloverMaximizer", "adv, 0.001 pvp fights, -tie");
     }
@@ -349,6 +351,8 @@ void reset_checkpoints_for_new_day() {
     set_property(INTERNAL + "leg2LateDailyDone", "false");
     set_property(INTERNAL + "leg2GarboDone", "false");
     set_property(INTERNAL + "leg2NightcapDone", "false");
+    set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "false");
+    set_property(INTERNAL + "leg2PostNightcapBurnDone", "false");
     set_property(INTERNAL + "leg2ExpandedOrgansDone", "false");
     set_property(INTERNAL + "leg2RolloverHookDone", "false");
     set_property(INTERNAL + "leg2RolloverDone", "false");
@@ -374,6 +378,14 @@ void prepare_loop_state() {
     if (get_property(INTERNAL + "leg2LateDailyDone") == "") {
         set_property(INTERNAL + "leg2LateDailyDone",
             get_property(INTERNAL + "leg2Complete").to_boolean() ? "true" : "false");
+    }
+    if (get_property(INTERNAL + "leg2ExpandedOrgansBaseDone") == "") {
+        set_property(INTERNAL + "leg2ExpandedOrgansBaseDone",
+            get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean() ? "true" : "false");
+    }
+    if (get_property(INTERNAL + "leg2PostNightcapBurnDone") == "") {
+        set_property(INTERNAL + "leg2PostNightcapBurnDone",
+            get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean() ? "true" : "false");
     }
     if (get_property(INTERNAL + "leg1RolloverDone") == "") {
         set_property(INTERNAL + "leg1RolloverDone", "false");
@@ -1285,6 +1297,8 @@ void status() {
         + "; consume=" + get_property(INTERNAL + "leg2ConsumeDone")
         + "; garbo=" + get_property(INTERNAL + "leg2GarboDone")
         + "; nightcap=" + get_property(INTERNAL + "leg2NightcapDone")
+        + "; expandedBase=" + get_property(INTERNAL + "leg2ExpandedOrgansBaseDone")
+        + "; postNightcapBurn=" + get_property(INTERNAL + "leg2PostNightcapBurnDone")
         + "; expandedOrgans=" + get_property(INTERNAL + "leg2ExpandedOrgansDone")
         + "; hook=" + get_property(INTERNAL + "leg2RolloverHookDone")
         + "; rollover=" + get_property(INTERNAL + "leg2RolloverDone"));
@@ -1326,7 +1340,8 @@ void status() {
     print_ascension_config();
     print("Configured UnderTheSea command: \""
         + pref_string("underTheSeaCommand", "UnderTheSea") + "\""
-        + "; auto-recover Fishy=" + pref_bool("underTheSeaAutoRecoverFishy", true));
+        + "; auto-recover Fishy=" + pref_bool("underTheSeaAutoRecoverFishy", true)
+        + "; auto-recover champion=" + pref_bool("underTheSeaAutoRecoverChampion", true));
     print("Leg2 automation: runAfterUnderSea=" + pref_bool("leg2RunAfterUnderSea", false)
         + "; pearlMode=" + pref_string("leg2PearlMode", "FARM")
         + "; target=" + pref_int("leg2PearlTargetCount", 5)
@@ -1388,7 +1403,7 @@ void status() {
         + "; prep=" + pref_bool("leg2PrepareRollover", true)
         + "; cap=" + pref_int("leg2RolloverAdventureCap", 200)
         + "; maximizer=\"" + pref_string("leg2RolloverMaximizer", "adv, 0.001 pvp fights, -tie") + "\""
-        + "; overflow Garbo=\"" + pref_string("leg2OverflowGarboCommand", "garbo nodiet") + "\""
+        + "; overflow burn location=\"" + pref_string("leg2OverflowTurnBurnLocation", "Barf Mountain") + "\""
         + "; hook=\"" + pref_string("leg2RolloverCommand", "") + "\"");
     print("Leg1 rollover: prep=" + pref_bool("leg1PrepareRollover", true)
         + "; cap=" + pref_int("leg1RolloverAdventureCap", 200)
@@ -1538,7 +1553,10 @@ string sim_cozy_bazooka_detail() {
 boolean sim_pantogram_pressure_ready() {
     if (have_item_or_equipped(PANTOGRAM_PANTS)) {
         if (!pref_bool("leg2RequirePantogramPressure", true)) return true;
-        return get_property("_pantogramModifier").contains_text("env(underwater)");
+        string mods = get_property("_pantogramModifier");
+        return mods.contains_text("Better Diver: 20")
+            || mods.contains_text("Better Diver: +20")
+            || mods.contains_text("env(underwater)");
     }
     if (!pref_bool("leg2BuildPantogram", true)) return false;
     if (!have_item_or_equipped(PORTABLE_PANTOGRAM)) return false;
@@ -1549,7 +1567,10 @@ boolean sim_pantogram_pressure_ready() {
 
 string sim_pantogram_pressure_detail() {
     if (have_item_or_equipped(PANTOGRAM_PANTS)) {
-        if (get_property("_pantogramModifier").contains_text("env(underwater)")) return "pressure pants already built";
+        string mods = get_property("_pantogramModifier");
+        if (mods.contains_text("Better Diver: 20")
+            || mods.contains_text("Better Diver: +20")
+            || mods.contains_text("env(underwater)")) return "pressure pants already built";
         return "pants exist without pressure modifier";
     }
     if (!pref_bool("leg2BuildPantogram", true)) return "Pantogram building disabled";
@@ -1992,6 +2013,10 @@ void preflight() {
         run_cli("UnderTheSeaPrep preflight");
     } else {
         print_non_organ_leg1_preflight(route);
+    }
+    if (pref_string("leg2OverflowTurnBurnLocation", "Barf Mountain").to_location()
+        == $location[none]) {
+        abort(PREF + "leg2OverflowTurnBurnLocation is not a recognized location.");
     }
     print_postrun_pearl_report();
     print("LoopTheSea preflight complete.", "green");
@@ -2447,6 +2472,8 @@ void mark_ascension_complete() {
     set_property(INTERNAL + "leg2LateDailyDone", "false");
     set_property(INTERNAL + "leg2GarboDone", "false");
     set_property(INTERNAL + "leg2NightcapDone", "false");
+    set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "false");
+    set_property(INTERNAL + "leg2PostNightcapBurnDone", "false");
     set_property(INTERNAL + "leg2ExpandedOrgansDone", "false");
     set_property(INTERNAL + "leg2RolloverHookDone", "false");
     set_property(INTERNAL + "leg2RolloverDone", "false");
@@ -2601,7 +2628,7 @@ void run_configured_perm_skills() {
     }
 }
 
-void submit_afterlife_ascension() {
+void submit_afterlife_ascension(int starting_ascensions) {
     int ascension_type = configured_ascension_type();
     int path_id = configured_path_id();
     class target_class = configured_class();
@@ -2615,9 +2642,6 @@ void submit_afterlife_ascension() {
     buy_afterlife_item("astral deli item", "buydeli", astral_deli);
     buy_afterlife_item("astral pet", "buyarmory", astral_pet);
     run_configured_perm_skills();
-
-    int starting_ascensions = get_property(INTERNAL + "ascensionStartedFrom").to_int();
-    if (starting_ascensions <= 0) starting_ascensions = my_ascensions();
 
     print("Submitting 11,037 Leagues Under the Sea ascension.", "teal");
     string url = "afterlife.php?pwd&action=ascend&confirmascend=1"
@@ -2663,8 +2687,15 @@ void ascend_checkpoint() {
         return;
     }
 
+    boolean already_in_valhalla = valhalla_ready();
+    int starting_ascensions = my_ascensions();
+    if (already_in_valhalla && starting_ascensions > 0) {
+        // KoL increments this count when entering Valhalla, before the new path is submitted.
+        starting_ascensions -= 1;
+    }
+
     enter_valhalla_if_needed();
-    submit_afterlife_ascension();
+    submit_afterlife_ascension(starting_ascensions);
 
     if (pref_bool("stopAfterAscension", true)) {
         print("Stopping after automated ascension by " + PREF
@@ -2843,10 +2874,12 @@ void take_porquoise_out_for_pantogram() {
 
 boolean pantogram_has_pressure_modifier() {
     string mods = get_property("_pantogramModifier");
-    return mods.contains_text("Meat Drop Penalty")
+    return mods.contains_text("Better Diver: 20")
+        || mods.contains_text("Better Diver: +20")
+        || (mods.contains_text("Meat Drop Penalty")
         && mods.contains_text("Item Drop Penalty")
         && mods.contains_text("Initiative Penalty")
-        && mods.contains_text("env(underwater)");
+        && mods.contains_text("env(underwater)"));
 }
 
 void ensure_leg2_core_pressure_gear() {
@@ -4106,7 +4139,8 @@ void require_leg2_organ_lock_available(string context) {
 boolean leg2_expanded_organs_locked() {
     return pref_bool("leg2RunExpandedOrgansRollover", false)
         && pref_bool("leg2KeepOrganGearForRollover", false)
-        && get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean();
+        && (get_property(INTERNAL + "leg2ExpandedOrgansBaseDone").to_boolean()
+            || get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean());
 }
 
 void verify_leg2_organ_lock(string context) {
@@ -4169,63 +4203,56 @@ void validate_leg2_expanded_organ_simulation(string command, int expected_fullne
     }
 }
 
-void run_leg2_expanded_organs_rollover() {
-    if (get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean()) {
-        print("Leg2 expanded-organ rollover consume is already complete.", "green");
-        if (leg2_expanded_organs_locked()) equip_leg2_organ_lock();
+void run_leg2_expanded_organ_base() {
+    if (get_property(INTERNAL + "leg2ExpandedOrgansBaseDone").to_boolean()) {
+        print("Leg2 expanded-organ base consume is already complete.", "green");
         return;
     }
     if (!leg2_overdrunk_rollover_allowed()) {
-        print("Skipping Leg2 expanded-organ rollover consume by "
+        print("Skipping Leg2 expanded-organ base consume by "
             + PREF + "allowOverdrunkRollover=false.", "yellow");
+        set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "true");
+        set_property(INTERNAL + "leg2PostNightcapBurnDone", "true");
         set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
         return;
     }
     if (!pref_bool("leg2RunExpandedOrgansRollover", false)) {
-        print("Skipping Leg2 expanded-organ rollover consume by "
+        print("Skipping Leg2 expanded-organ base consume by "
             + PREF + "leg2RunExpandedOrgansRollover=false.", "yellow");
-        set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
+        set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "true");
         return;
     }
 
     equip_leg2_organ_lock();
     int fullness = max(0, fullness_limit() - my_fullness());
     int spleen = max(0, spleen_limit() - my_spleen_use());
-    boolean eat_wet_dates = pref_bool("leg2UseWetDatesRollover", false)
+    boolean reserve_wet_dates = pref_bool("leg2UseWetDatesRollover", false)
         && have_effect($effect[A Date With Tomorrow]) <= 0;
-    int consume_fullness = fullness - (eat_wet_dates ? 1 : 0);
+    int reserved_fullness = reserve_wet_dates ? 1 : 0;
+    int consume_fullness = fullness - reserved_fullness;
     if (consume_fullness < 0) {
         abort("No expanded fullness remains for the configured final " + PILE_OF_WET_DATES + ".");
     }
-    if (fullness <= 0 && spleen <= 0) {
-        abort("Leg2 expanded-organ rollover consume found no remaining +stomach or +spleen capacity while wearing the organ-lock set.");
-    }
-
-    string sim_command = leg2_expanded_organ_command(consume_fullness, spleen, true);
-    validate_leg2_expanded_organ_simulation(sim_command, consume_fullness, spleen);
-    run_cli(leg2_expanded_organ_command(consume_fullness, spleen, false));
-    equip_leg2_organ_lock();
-    if (eat_wet_dates) {
-        eat_leg2_rollover_wet_dates();
+    if (consume_fullness > 0 || spleen > 0) {
+        string sim_command = leg2_expanded_organ_command(consume_fullness, spleen, true);
+        validate_leg2_expanded_organ_simulation(sim_command, consume_fullness, spleen);
+        run_cli(leg2_expanded_organ_command(consume_fullness, spleen, false));
         equip_leg2_organ_lock();
-    }
-
-    if (my_fullness() != fullness_limit()) {
-        abort("Leg2 expanded-organ consume left fullness at "
-            + my_fullness() + "/" + fullness_limit() + ".");
-    }
-    if (my_spleen_use() != spleen_limit()) {
-        abort("Leg2 expanded-organ consume left spleen at "
-            + my_spleen_use() + "/" + spleen_limit() + ".");
-    }
-
-    set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
-    set_property(INTERNAL + "leg2RolloverDone", "false");
-    if (pref_bool("leg2KeepOrganGearForRollover", false)) {
-        print("Leg2 expanded-organ rollover consume complete; organ gear remains locked by configuration.", "green");
     } else {
-        print("Leg2 expanded-organ rollover consume complete; organ gear may now be released for rollover maximization.", "green");
+        print("No expanded stomach or spleen space remains before the wet-dates reservation.", "yellow");
     }
+
+    int remaining_fullness = fullness_limit() - my_fullness();
+    int remaining_spleen = spleen_limit() - my_spleen_use();
+    if (remaining_fullness != reserved_fullness || remaining_spleen != 0) {
+        abort("Leg2 expanded-organ base consume left " + remaining_fullness
+            + " fullness and " + remaining_spleen + " spleen open; expected "
+            + reserved_fullness + " and 0.");
+    }
+
+    set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "true");
+    set_property(INTERNAL + "leg2RolloverDone", "false");
+    print("Leg2 expanded-organ base consume is complete; wet dates remain reserved.", "green");
 }
 
 void run_leg2_final_nightcap() {
@@ -4257,10 +4284,8 @@ void run_leg2_final_nightcap() {
         print("Maximizing +liver for the final Leg2 nightcap.", "teal");
         if (!maximize("+liver, -tie", false)) abort("Unable to maximize +liver for the Leg2 nightcap.");
         use_stooper_for_leg2_nightcap();
-        if (!pref_bool("leg2RunExpandedOrgansRollover", false)) eat_leg2_rollover_wet_dates();
         run_cli(pref_string("leg2FinalNightcapCommand", "CONSUME NIGHTCAP"));
     } else {
-        if (!pref_bool("leg2RunExpandedOrgansRollover", false)) eat_leg2_rollover_wet_dates();
         print("Character is already overdrunk; treating the final Leg2 nightcap as complete.", "yellow");
     }
     if (my_inebriety() <= inebriety_limit()) {
@@ -4302,10 +4327,6 @@ void maximize_leg2_rollover() {
 
 void burn_leg2_rollover_overflow(int overflow) {
     if (overflow <= 0) return;
-    if (leg2_expanded_organs_locked()) {
-        abort("Projected rollover exceeds the cap by " + overflow
-            + " adventure(s), but the expanded-organ rollover consume is complete and its gear cannot be removed.");
-    }
     if (have_effect($effect[A Date With Tomorrow]) > 0) {
         abort("Projected rollover exceeds the cap by " + overflow
             + " adventure(s), but spending a turn would remove A Date With Tomorrow.");
@@ -4314,9 +4335,145 @@ void burn_leg2_rollover_overflow(int overflow) {
         abort("Projected rollover exceeds the cap by " + overflow
             + " adventure(s), but only " + my_adventures() + " can be spent.");
     }
-    string command = pref_string("leg2OverflowGarboCommand", "garbo nodiet");
-    print("Burning " + overflow + " rollover-overflow adventure(s) with " + command + ".", "teal");
-    run_cli(command + " turns=" + overflow);
+
+    location burn_location = pref_string("leg2OverflowTurnBurnLocation", "Barf Mountain").to_location();
+    if (burn_location == $location[none]) {
+        abort(PREF + "leg2OverflowTurnBurnLocation is not a recognized location.");
+    }
+    boolean preserve_expanded_organs = pref_bool("leg2RunExpandedOrgansRollover", false)
+        && get_property(INTERNAL + "leg2ExpandedOrgansBaseDone").to_boolean();
+    if (preserve_expanded_organs) {
+        equip_leg2_organ_lock();
+    } else if (my_inebriety() > inebriety_limit()) {
+        equip_required($slot[off-hand], WINEGLASS, "Leg2 rollover overflow burn");
+    }
+    if (my_fullness() > fullness_limit()) {
+        abort("Leg2 rollover overflow burn refuses to adventure while overfull; expanded-stomach gear is not active.");
+    }
+    if (my_spleen_use() > spleen_limit()) {
+        abort("Leg2 rollover overflow burn refuses to adventure while overspleened; expanded-spleen gear is not active.");
+    }
+    if (!can_adventure(burn_location)) {
+        abort("Leg2 rollover overflow location is not adventureable after restoring its required gear: "
+            + burn_location + ".");
+    }
+
+    int target = my_adventures() - overflow;
+    print("Directly burning " + overflow + " rollover-overflow adventure(s) at "
+        + burn_location + "; target held adventures=" + target + ".", "yellow");
+    string previous_battle_action = get_property("battleAction");
+    try {
+        set_property("battleAction", "attack with weapon");
+        while (my_adventures() > target) {
+            if (preserve_expanded_organs) {
+                verify_leg2_organ_lock("Leg2 rollover overflow burn");
+            } else if (my_inebriety() > inebriety_limit()
+                && equipped_item($slot[off-hand]) != WINEGLASS) {
+                abort("Leg2 rollover overflow burn refuses to adventure overdrunk without Drunkula's wineglass equipped.");
+            }
+            if (my_fullness() > fullness_limit()) {
+                abort("Leg2 rollover overflow burn became overfull before an adventure.");
+            }
+            if (my_spleen_use() > spleen_limit()) {
+                abort("Leg2 rollover overflow burn became overspleened before an adventure.");
+            }
+
+            int before = my_adventures();
+            boolean completed = adventure(1, burn_location);
+            if (get_property("lastEncounter") == "Food Coma") {
+                abort("Leg2 rollover overflow burn encountered Food Coma despite its organ-capacity guard; refusing to waste another adventure.");
+            }
+            if (my_adventures() >= before) {
+                abort("Leg2 rollover overflow burn at " + burn_location
+                    + " did not consume an adventure; refusing to loop.");
+            }
+            if (!completed) {
+                print("Leg2 rollover overflow attempt returned false but consumed an adventure; continuing safely.", "yellow");
+            }
+        }
+    } finally {
+        set_property("battleAction", previous_battle_action);
+    }
+    print("Direct Leg2 rollover overflow burn reached " + my_adventures()
+        + " held adventure(s).", "green");
+}
+
+void run_leg2_post_nightcap_burn() {
+    if (get_property(INTERNAL + "leg2PostNightcapBurnDone").to_boolean()) {
+        print("Leg2 post-nightcap overflow burn is already complete.", "green");
+        return;
+    }
+    if (!leg2_overdrunk_rollover_allowed()) {
+        print("Skipping Leg2 post-nightcap overflow burn by "
+            + PREF + "allowOverdrunkRollover=false.", "yellow");
+        set_property(INTERNAL + "leg2PostNightcapBurnDone", "true");
+        return;
+    }
+    if (!get_property(INTERNAL + "leg2NightcapDone").to_boolean()) {
+        abort("Leg2 post-nightcap overflow burn requires the completed nightcap checkpoint.");
+    }
+    if (!get_property(INTERNAL + "leg2ExpandedOrgansBaseDone").to_boolean()) {
+        abort("Leg2 post-nightcap overflow burn requires the expanded-organ base checkpoint.");
+    }
+    if (have_effect($effect[A Date With Tomorrow]) > 0) {
+        abort("Refusing the Leg2 post-nightcap overflow burn after A Date With Tomorrow is active.");
+    }
+
+    int cap = pref_int("leg2RolloverAdventureCap", 200);
+    if (cap <= 0) abort(PREF + "leg2RolloverAdventureCap must be positive.");
+    int future_wet_dates = pref_bool("leg2UseWetDatesRollover", false) ? 14 : 0;
+    for attempt from 1 to 3 {
+        maximize_leg2_rollover();
+        int future_projection = projected_rollover_adventures() + future_wet_dates;
+        int overflow = max(0, future_projection - cap);
+        print("Leg2 post-nightcap projection before wet dates: "
+            + future_projection + "/" + cap + "; profitable overflow="
+            + overflow + ".", overflow > 0 ? "yellow" : "green");
+        if (overflow <= 0) {
+            set_property(INTERNAL + "leg2PostNightcapBurnDone", "true");
+            return;
+        }
+        burn_leg2_rollover_overflow(overflow);
+    }
+    abort("Unable to settle the Leg2 post-nightcap rollover overflow after three attempts.");
+}
+
+void finish_leg2_expanded_organs_rollover() {
+    if (get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean()) {
+        print("Leg2 expanded-organ rollover consume is already complete.", "green");
+        if (leg2_expanded_organs_locked()) equip_leg2_organ_lock();
+        return;
+    }
+
+    run_leg2_expanded_organ_base();
+    if (get_property(INTERNAL + "leg2ExpandedOrgansDone").to_boolean()) return;
+
+    boolean expanded_organs = pref_bool("leg2RunExpandedOrgansRollover", false);
+    if (expanded_organs) equip_leg2_organ_lock();
+    if (pref_bool("leg2UseWetDatesRollover", false)
+        && have_effect($effect[A Date With Tomorrow]) <= 0) {
+        eat_leg2_rollover_wet_dates();
+        if (expanded_organs) equip_leg2_organ_lock();
+    }
+
+    if (expanded_organs && my_fullness() != fullness_limit()) {
+        abort("Leg2 expanded-organ consume left fullness at "
+            + my_fullness() + "/" + fullness_limit() + ".");
+    }
+    if (expanded_organs && my_spleen_use() != spleen_limit()) {
+        abort("Leg2 expanded-organ consume left spleen at "
+            + my_spleen_use() + "/" + spleen_limit() + ".");
+    }
+
+    set_property(INTERNAL + "leg2ExpandedOrgansDone", "true");
+    set_property(INTERNAL + "leg2RolloverDone", "false");
+    if (expanded_organs && pref_bool("leg2KeepOrganGearForRollover", false)) {
+        print("Leg2 expanded-organ rollover consume complete; organ gear remains locked by configuration.", "green");
+    } else if (expanded_organs) {
+        print("Leg2 expanded-organ rollover consume complete; organ gear may now be released for rollover maximization.", "green");
+    } else {
+        print("Leg2 rollover food finish is complete.", "green");
+    }
 }
 
 void run_leg1_rollover_hook() {
@@ -4425,12 +4582,14 @@ void prepare_leg2_rollover() {
             set_property(INTERNAL + "leg2RolloverDone", "true");
             return;
         }
-        if (have_effect($effect[A Date With Tomorrow]) > 0) {
-            print("Projected rollover exceeds the cap by " + overflow
-                + " adventure(s), but A Date With Tomorrow is active. Accepting rollover truncation at "
-                + cap + " rather than spending a turn and losing the effect.", "yellow");
+        if (have_effect($effect[A Date With Tomorrow]) > 0 && overflow == 1) {
+            print("Accepting one capped adventure from the high wet-dates roll.", "yellow");
             set_property(INTERNAL + "leg2RolloverDone", "true");
             return;
+        }
+        if (have_effect($effect[A Date With Tomorrow]) > 0) {
+            abort("Leg2 rollover still exceeds the cap by " + overflow
+                + " adventure(s) after A Date With Tomorrow became active; the post-nightcap burn should have settled this before wet dates.");
         }
         burn_leg2_rollover_overflow(overflow);
     }
@@ -4451,7 +4610,9 @@ void finish_leg2_rollover() {
     run_leg2_garbo();
     run_leg2_late_daily_sweep();
     run_leg2_final_nightcap();
-    run_leg2_expanded_organs_rollover();
+    run_leg2_expanded_organ_base();
+    run_leg2_post_nightcap_burn();
+    finish_leg2_expanded_organs_rollover();
     prepare_leg2_rollover();
     set_property(INTERNAL + "leg2Complete", "true");
     profit_marker("leg2_done");
@@ -4524,6 +4685,50 @@ boolean restore_undersea_fishy_before_resume() {
     return true;
 }
 
+int undersea_geyser_low_roll() {
+    float flat = numeric_modifier("Spell Damage")
+        + max(numeric_modifier("Hot Spell Damage"), numeric_modifier("Cold Spell Damage"));
+    float base = 60 + floor(0.4 * my_buffedstat($stat[Mysticality])) + flat;
+    return floor(base * (1 + numeric_modifier("Spell Damage Percent") / 100));
+}
+
+boolean undersea_champion_recovery_needed() {
+    if (!pref_bool("underTheSeaAutoRecoverChampion", true)) return false;
+    int won = get_property("lastColosseumRoundWon").to_int();
+    return won >= 12 && won <= 14
+        && get_property("isMerkinGladiatorChampion") != "true"
+        && get_property("_utsChampionRanEst").to_int() > 0;
+}
+
+boolean recover_undersea_champion_damage() {
+    int failed_estimate = get_property("_utsChampionRanEst").to_int();
+    print("UnderTheSea stopped at a Colosseum champion after a Saucegeyser estimate of "
+        + failed_estimate + " failed. Preparing one targeted retry.", "yellow");
+
+    if (have_skill($skill[Get Big])) {
+        use_skill(1, $skill[Get Big]);
+    }
+
+    int estimate = undersea_geyser_low_roll();
+    if (estimate <= failed_estimate && have_effect($effect[Mystically Oiled]) <= 0) {
+        item booster = $item[ointment of the occult];
+        if (retrieve_item(1, booster)) {
+            use(1, booster);
+            estimate = undersea_geyser_low_roll();
+        }
+    }
+
+    if (estimate <= failed_estimate) {
+        print("Automatic champion recovery only reached a Saucegeyser estimate of "
+            + estimate + "; need more than " + failed_estimate + ".", "red");
+        return false;
+    }
+
+    print("Automatic champion recovery raised the Saucegeyser estimate to "
+        + estimate + "; retrying UnderTheSea.", "green");
+    return true;
+}
+
 void run_undersea_command() {
     string command = pref_string("underTheSeaCommand", "UnderTheSea");
     string previous_choice_804 = get_property("choiceAdventure804");
@@ -4531,7 +4736,13 @@ void run_undersea_command() {
     set_property("choiceAdventure804", "2");
     try {
         print("Running: " + command, "teal");
-        run_cli(command);
+        boolean succeeded = cli_execute(command);
+        if (!succeeded && undersea_champion_recovery_needed()
+            && recover_undersea_champion_damage()) {
+            print("Retrying: " + command, "teal");
+            succeeded = cli_execute(command);
+        }
+        if (!succeeded) abort("Command failed: " + command);
     } finally {
         set_property("choiceAdventure804", previous_choice_804);
     }
@@ -4726,6 +4937,8 @@ void reset_checkpoints() {
     set_property(INTERNAL + "leg2LateDailyDone", "false");
     set_property(INTERNAL + "leg2GarboDone", "false");
     set_property(INTERNAL + "leg2NightcapDone", "false");
+    set_property(INTERNAL + "leg2ExpandedOrgansBaseDone", "false");
+    set_property(INTERNAL + "leg2PostNightcapBurnDone", "false");
     set_property(INTERNAL + "leg2ExpandedOrgansDone", "false");
     set_property(INTERNAL + "leg2RolloverHookDone", "false");
     set_property(INTERNAL + "leg2RolloverDone", "false");
