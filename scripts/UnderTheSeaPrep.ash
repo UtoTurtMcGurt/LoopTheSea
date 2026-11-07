@@ -26,6 +26,8 @@ item FISHY_PIPE = $item[fishy pipe];
 item MERKIN_STRONGJUICE = $item[Mer-kin strongjuice];
 item PHILTER_OF_PHORCE = $item[philter of phorce];
 item FERRIGNOS_ELIXIR = $item[Ferrigno's Elixir of Power];
+item TEMPORARY_GR8NESS = $item[potion of temporary gr8ness];
+item ICYVAPOHOTNESS_RUB = $item[Mick's IcyVapoHotness Rub];
 item BEACH_COMB = $item[Beach Comb];
 item DRIFTWOOD = $item[piece of driftwood];
 item DRIFTWOOD_COMB = $item[driftwood beach comb];
@@ -808,6 +810,14 @@ void ensure_muscle_floor() {
     use_muscle_potion(FERRIGNOS_ELIXIR, $effect[Incredibly Hulking], "ferrignosElixirMaxPrice", 5000);
     if (my_buffedstat($stat[Muscle]) >= floor) return;
 
+    // Short first legs can leave too little base Muscle for the standard long-duration buffs.
+    use_muscle_potion(TEMPORARY_GR8NESS, $effect[Gr8ness], "temporaryGr8nessMaxPrice", 5000);
+    if (my_buffedstat($stat[Muscle]) >= floor) return;
+
+    use_muscle_potion(ICYVAPOHOTNESS_RUB, $effect[Extreme Muscle Relaxation],
+        "icyVapoHotnessRubMaxPrice", 5000);
+    if (my_buffedstat($stat[Muscle]) >= floor) return;
+
     abort("Buffed Muscle is " + my_buffedstat($stat[Muscle]) + "; need " + floor
         + ". Add another source with " + PREF + "extraPearlBuffCommands.");
 }
@@ -898,7 +908,13 @@ int farm_pearl_zone(int zone_index, int noncombats_remaining) {
         }
 
         string combat_after = get_property("_lastCombatStarted");
-        if (combat_after != combat_before) {
+        float progress_after = pearl_zone_progress(zone_index);
+        boolean pearl_progressed = pearl_zone_complete(zone_index)
+            || progress_after > progress_before + 0.001;
+        boolean combat_observed = combat_after != combat_before
+            || pearl_progressed
+            || get_property("_lastCombatLost").to_boolean();
+        if (combat_observed) {
             if (get_property("_lastCombatLost").to_boolean()
                 || !get_property("_lastCombatWon").to_boolean()) {
                 monster opponent = last_monster();
@@ -916,7 +932,6 @@ int farm_pearl_zone(int zone_index, int noncombats_remaining) {
                 }
                 abort("Combat failed or timed out in " + PEARL_LOCATIONS[zone_index] + ".");
             }
-            float progress_after = pearl_zone_progress(zone_index);
             if (!pearl_zone_complete(zone_index) && progress_after + 0.001 < progress_before + 10.0) {
                 abort("Combat in " + PEARL_LOCATIONS[zone_index]
                     + " did not advance pearl progress by 10%. Before: " + progress_before

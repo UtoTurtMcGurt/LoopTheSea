@@ -3207,13 +3207,16 @@ boolean try_leg2_bofa_fishy() {
     }
     set_property(INTERNAL + "leg2BofaFishyAttempts", "" + (leg2_bofa_fishy_attempts_used() + 1));
 
-    if (get_property("_lastCombatStarted") == combat_before
-        || get_property("_lastCombatLost").to_boolean()
+    int fishy_gain = have_effect($effect[Fishy]) - fishy_before;
+    if (get_property("_lastCombatLost").to_boolean()
         || !get_property("_lastCombatWon").to_boolean()) {
         abort("Leg2 BOFA Fishy combat did not finish cleanly at " + loc + ".");
     }
 
-    int fishy_gain = have_effect($effect[Fishy]) - fishy_before;
+    if (get_property("_lastCombatStarted") == combat_before && fishy_gain < 5) {
+        print("BOFA combat marker did not advance and no Fishy was gained; falling back safely.", "yellow");
+    }
+
     if (fishy_gain >= 5) {
         print("BOFA some fish added " + fishy_gain + " Fishy turn(s).", "green");
         return true;
@@ -3927,13 +3930,18 @@ int farm_leg2_pearl_zone(int zone_index, int noncombats_remaining) {
         }
 
         string combat_after = get_property("_lastCombatStarted");
-        if (combat_after != combat_before) {
+        float progress_after = pearl_zone_progress(zone_index);
+        boolean pearl_progressed = pearl_zone_complete(zone_index)
+            || progress_after > progress_before + 0.001;
+        boolean combat_observed = combat_after != combat_before
+            || pearl_progressed
+            || get_property("_lastCombatLost").to_boolean();
+        if (combat_observed) {
             if (get_property("_lastCombatLost").to_boolean()
                 || !get_property("_lastCombatWon").to_boolean()) {
                 abort("Combat failed or timed out in " + PEARL_LOCATIONS[zone_index] + ".");
             }
 
-            float progress_after = pearl_zone_progress(zone_index);
             float progress_gain = progress_after - progress_before;
             if (!pearl_zone_complete(zone_index) && progress_gain < 9.999) {
                 if (progress_gain > 0.001) {

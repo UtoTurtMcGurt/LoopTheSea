@@ -11,3 +11,4 @@
 - Added documentation for dependencies, configuration, and recovery.
 - Hardened Leg2 Pantogram setup so consume/stat prep runs before pressure-gear probing and diagnostics explain stat-gated pressure gear.
 - Reordered Leg2 rollover so expanded organs are consumed before a guarded, attack-only overflow burn, while wet dates remain reserved until all profitable turns are spent.
+- Hardened pearl combat detection against stale KoLmafia combat markers and added inexpensive Muscle fallback potions for short Leg1 routes.
